@@ -83,6 +83,9 @@
           <div class="play-bar">
             <button id="play" class="play" data-play="editor" aria-pressed="false"><span class="ico"></span><span class="lbl">Listen</span></button>
           </div>
+          <button id="longPlay" class="long-btn" data-long aria-pressed="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9 9 9 0 0 0-9-9zm0 16a7 7 0 1 1 7-7 7 7 0 0 1-7 7zm.5-11H11v5l4.2 2.5.8-1.2-3.5-2.1z" fill="currentColor"/></svg>
+        <span><span class="long-lbl">Listen for 30 min</span><small>Keeps playing with the screen locked</small></span></button>
           <p class="note">Keep the volume comfortable and stop if the sound becomes unpleasant.</p>
 
           <button id="share" class="primary share-btn">
@@ -122,6 +125,9 @@
       <div class="pad mini" aria-hidden="true"><div class="pad-surface"><div class="pad-grain"></div></div><div id="sharedDots"></div></div>
       <p id="sharedInfo" class="note"></p>
       <button id="sharedPlay" class="play big" data-play="shared" aria-pressed="false"><span class="ico"></span><span class="lbl">Listen to this sound</span></button>
+      <button id="sharedLong" class="long-btn" data-long aria-pressed="false">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9 9 9 0 0 0-9-9zm0 16a7 7 0 1 1 7-7 7 7 0 0 1-7 7zm.5-11H11v5l4.2 2.5.8-1.2-3.5-2.1z" fill="currentColor"/></svg>
+        <span><span class="long-lbl">Listen for 30 min</span><small>Keeps playing with the screen locked</small></span></button>
       <p class="caution center"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/></svg>Turn the volume down a little before listening.</p>
       <button id="sharedEdit" class="link">Edit this sound</button>
       <button id="sharedNew" class="link">Recreate my own tinnitus</button>

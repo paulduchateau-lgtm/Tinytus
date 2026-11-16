@@ -3,6 +3,7 @@ import { LiveEngine, freqOf, rateOf } from './audio-engine.js';
 import { PRESETS, makeTrack, sanitizeTracks, MAX_TRACKS } from './presets.js';
 import { encodeShare, decodeShare } from './sharing.js';
 import { renderWav } from './export.js';
+import { longListen } from './long-listen.js';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -57,6 +58,7 @@ const currentTracks = () => (screen === 'home' ? (preview ? preview.tracks : [])
 function play(tracks) {
   if (!engine.supported) return toast('Your browser cannot generate sound.');
   if (!tracks.some(t => t.on)) return toast('All sounds are muted. Turn at least one back on.');
+  longListen.stop();
   engine.start(tracks);
   setTimeout(() => {
     if (engine.playing && engine.ctx && engine.ctx.state !== 'running') {
@@ -68,6 +70,28 @@ const refreshAudio = () => engine.sync(currentTracks());
 
 engine.onChange = () => updatePlayUI();
 engine.onInterrupt = () => toast('The sound was interrupted. Tap “Listen” to resume.');
+
+// Long listening (30 minutes, keeps playing with the screen locked)
+const LONG_MINUTES = 30;
+function toggleLong(tracks) {
+  if (longListen.active) return longListen.stop();
+  if (!tracks.some(t => t.on)) return toast('All sounds are muted. Turn at least one back on.');
+  engine.stop(true);
+  longListen.start(tracks, LONG_MINUTES).catch(e => { console.error(e); toast('Long listening could not start on this device.'); });
+}
+const mmss = ms => { const t = Math.ceil(ms / 1000); return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`; };
+function updateLongUI() {
+  for (const b of $$('[data-long]')) {
+    b.classList.toggle('on', longListen.active);
+    b.setAttribute('aria-pressed', longListen.active);
+    b.querySelector('.long-lbl').textContent = !longListen.active ? `Listen for ${LONG_MINUTES} min`
+      : longListen.ready ? `Stop · ${mmss(longListen.remaining())} left` : 'Preparing…';
+  }
+}
+longListen.onChange = updateLongUI;
+setInterval(() => { if (longListen.ready) updateLongUI(); }, 1000);
+$('#longPlay').onclick = () => toggleLong(state.tracks);
+$('#sharedLong').onclick = () => toggleLong(shared);
 document.addEventListener('visibilitychange', () => { if (document.hidden) engine.stop(true); });
 window.addEventListener('pagehide', () => engine.stop(true));
 
@@ -86,6 +110,7 @@ function updatePlayUI() {
 function show(name) {
   if (name !== screen) {
     if (!(screen === 'home' && name === 'editor')) engine.stop();
+    longListen.stop();
     if (name === 'home') preview = null;
   }
   for (const s of $$('.screen')) s.hidden = s.id !== name;
@@ -219,7 +244,9 @@ $('#deleteTrack').onclick = () => {
   changed();
 };
 
+let longHinted = false;
 function changed(full = true) {
+  if (longListen.active && !longHinted) { longHinted = true; toast('Changes will apply next time you start the 30-minute listening.'); }
   if (screen === 'editor') refreshAudio();
   save();
   if (full) renderEditor(); else { positionDots(); }
@@ -401,7 +428,7 @@ $('#sharedPlay').onclick = () => {
 };
 $('#sharedEdit').onclick = () => { state.tracks = shared; state.sel = 0; save(); clearHash(); engine.stop(); show('editor'); };
 $('#sharedNew').onclick = () => { clearHash(); show('home'); };
-window.addEventListener('hashchange', () => { engine.stop(); if (!readHash() && screen === 'shared') show('home'); });
+window.addEventListener('hashchange', () => { engine.stop(); longListen.stop(); if (!readHash() && screen === 'shared') show('home'); });
 
 // ---------- Startup ----------
 load();

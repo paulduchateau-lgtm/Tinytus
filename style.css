@@ -223,6 +223,17 @@ input[type=range]::-moz-range-thumb { width: 28px; height: 28px; border: 0; bord
 
 .share-btn { margin-top: 18px; }
 
+.long-btn {
+  display: flex; align-items: center; gap: 12px; width: 100%; margin-top: 12px; padding: 10px 16px; min-height: 56px;
+  border-radius: 18px; background: var(--surface); border: 1px solid var(--line); text-align: left; transition: background .2s, border-color .2s;
+}
+.long-btn svg { width: 22px; height: 22px; flex: none; color: #b9c3ff; }
+.long-btn > span { display: flex; flex-direction: column; }
+.long-lbl { font-weight: 600; font-size: 16px; font-variant-numeric: tabular-nums; }
+.long-btn small { font-size: 13px; color: var(--muted); }
+.long-btn.on { background: var(--surface-2); border-color: rgba(185, 195, 255, .5); }
+#shared .long-btn { max-width: 360px; margin: 12px auto 0; }
+
 details.more { margin-top: 16px; border-radius: 18px; background: var(--surface); border: 1px solid var(--line); }
 details.more summary {
   list-style: none; cursor: pointer; padding: 14px 18px; font-size: 15px; font-weight: 600; color: #c6cdf0;

@@ -81,7 +81,9 @@ const hold = (p, t) => (p.cancelAndHoldAtTime ? p.cancelAndHoldAtTime(t) : p.can
  * Builds a track's graph:
  * oscillator + filtered noise → “grain” envelope → beat → level → ear → output
  */
-export function createVoice(ctx, out, track, { fadeIn = 0.08 } = {}) {
+// With `period` (seconds), pitch and pulse speed are rounded to whole cycles per period
+// (inaudible: under 0.025 Hz), so the rendered sound repeats exactly and can loop seamlessly.
+export function createVoice(ctx, out, track, { fadeIn = 0.08, period = 0 } = {}) {
   const B = buffers(ctx), sr = ctx.sampleRate;
   const osc = ctx.createOscillator();
   const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 0.3;
@@ -116,6 +118,10 @@ export function createVoice(ctx, out, track, { fadeIn = 0.08 } = {}) {
 
   function update(tr, now = false) {
     const p = voiceParams(tr, sr, B), t = ctx.currentTime;
+    if (period) {
+      p.f = Math.max(1, Math.round(p.f * period)) / period;
+      p.rate = Math.max(1, Math.round(p.rate * period)) / period;
+    }
     if (osc.type !== p.wave) {
       if (now || last.tone === undefined) osc.type = p.wave;
       else { // timbre change: duck briefly to avoid a click

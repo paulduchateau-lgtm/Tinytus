@@ -20,7 +20,8 @@ It is 100% static: no server, no account, no dependencies. Everything stays on t
 | `audio-engine.js` | Web Audio synthesis engine (live playback + shared graph) |
 | `presets.js` | Track model, validation and starting sounds |
 | `sharing.js` | Compact, versioned link encoding |
-| `export.js` | `OfflineAudioContext` rendering and 16-bit PCM WAV encoding |
+| `export.js` | `OfflineAudioContext` rendering, seamless loop and 16-bit PCM WAV encoding |
+| `long-listen.js` | 30-minute listening that keeps playing with the screen locked |
 | `app.js` | User interface |
 
 The WAV export uses exactly the same `createVoice()` function as live playback.
@@ -28,6 +29,10 @@ The WAV export uses exactly the same `createVoice()` function as live playback.
 ### Link format (v1)
 
 `#s=` followed by the composition encoded in base64url: one version byte, the track count, then 9 bytes per track (pitch on 16 bits, then purity, loudness, pulse, grain, speed, width, and flags for on/off, ear and tone), and finally a checksum. A 4-track link is about 55 characters. On opening, the version, length, checksum and values are all validated. A damaged link returns to the home screen with a message.
+
+## 30-minute listening
+
+A 30-minute WAV would weigh about 300 MB. Instead, the browser renders a **20-second loop that repeats exactly** (about 3.5 MB): pitch and pulse are rounded to whole cycles per loop (under 0.025 Hz, inaudible) and the noise buffers last 4 s, so the end joins the start with no seam. The loop starts on its quietest sample to avoid a click. An `<audio loop>` element plays it, so it keeps going with the screen locked and shows lock-screen controls (Media Session). It stops on its own after 30 minutes.
 
 ## Hearing safety
 
