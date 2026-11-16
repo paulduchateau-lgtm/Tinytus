@@ -1,26 +1,26 @@
-// Moteur de synthèse sonore.
-// Utilisé à l'identique par l'écoute en direct (AudioContext) et par l'export WAV
-// (OfflineAudioContext) : une seule fonction construit le graphe d'une piste.
+// Sound synthesis engine.
+// Used identically by live playback (AudioContext) and WAV export
+// (OfflineAudioContext): a single function builds a track's graph.
 
 export const F_MIN = 80;
 export const F_MAX = 14000;
-const MAX_GAIN = 0.45;  // gain d'une piste à intensité maximale (avant limiteur)
-const TAU = 0.03;       // lissage des réglages en temps réel (secondes)
+const MAX_GAIN = 0.45;  // gain of one track at full level (before the limiter)
+const TAU = 0.03;       // smoothing of real-time changes (seconds)
 
 const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
 
-/** Position horizontale (0..1) → fréquence en Hz (échelle logarithmique). */
+/** Horizontal position (0..1) → frequency in Hz (logarithmic scale). */
 export const freqOf = x => F_MIN * Math.pow(F_MAX / F_MIN, clamp(x));
-/** Réglage de vitesse (0..1) → battements par seconde (0,5 à 8 Hz). */
+/** Speed setting (0..1) → beats per second (0.5 to 8 Hz). */
 export const rateOf = r => 0.5 * Math.pow(16, clamp(r));
 
-// Générateur pseudo-aléatoire déterministe : même bruit à l'écoute et à l'export.
+// Deterministic pseudo-random generator: same noise in playback and export.
 function prng(seed) {
   return () => (seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296;
 }
 
 const cache = new WeakMap();
-/** Tampons de bruit blanc et d'enveloppe « grain », créés une fois par contexte. */
+/** White-noise and “grain” envelope buffers, created once per context. */
 function buffers(ctx) {
   let b = cache.get(ctx);
   if (b) return b;
@@ -29,8 +29,8 @@ function buffers(ctx) {
   const n = noise.getChannelData(0);
   for (let i = 0; i < len; i++) n[i] = rand() * 2 - 1;
 
-  // Enveloppe granuleuse : valeurs aléatoires tenues 4 à 34 ms, souvent nulles,
-  // reliées par des micro-rampes pour rester « électrique » sans claquer.
+  // Grainy envelope: random values held 4 to 34 ms, often zero,
+  // joined by micro-ramps so it sounds “electric” without harsh clicks.
   const grain = ctx.createBuffer(1, len, sr);
   const g = grain.getChannelData(0);
   const ramp = Math.floor(sr * 0.0015);
@@ -49,13 +49,13 @@ function buffers(ctx) {
   return b;
 }
 
-/** Paramètres internes d'une piste. Fonction pure : facile à tester. */
+/** Internal parameters of a track. Pure function: easy to test. */
 export function voiceParams(t, sr, B) {
   const f = Math.min(freqOf(t.x), sr * 0.45);
   const y = clamp(t.y);
-  // Pureté → largeur de la bande de bruit (Q élevé = étroit = presque tonal).
+  // Purity → noise bandwidth (high Q = narrow = almost tonal).
   const Q = (0.35 + 45 * Math.pow(1 - y, 2.2)) * Math.pow(2, (0.5 - clamp(t.width)) * 4);
-  // Compensation d'énergie du bruit filtré pour que le volume reste stable.
+  // Energy compensation for filtered noise so loudness stays stable.
   const bw = Math.min(sr / 2, 1.5708 * f / Q);
   const noiseComp = clamp(1.225 / Math.sqrt(bw / (sr / 2)), 0.5, 40);
   const g = clamp(t.grain), d = clamp(t.beat), lvl = clamp(t.level);
@@ -78,8 +78,8 @@ export function voiceParams(t, sr, B) {
 const hold = (p, t) => (p.cancelAndHoldAtTime ? p.cancelAndHoldAtTime(t) : p.cancelScheduledValues(t));
 
 /**
- * Construit le graphe d'une piste :
- * oscillateur + bruit filtré → enveloppe « grain » → battement → intensité → oreille → sortie
+ * Builds a track's graph:
+ * oscillator + filtered noise → “grain” envelope → beat → level → ear → output
  */
 export function createVoice(ctx, out, track, { fadeIn = 0.08 } = {}) {
   const B = buffers(ctx), sr = ctx.sampleRate;
@@ -118,7 +118,7 @@ export function createVoice(ctx, out, track, { fadeIn = 0.08 } = {}) {
     const p = voiceParams(tr, sr, B), t = ctx.currentTime;
     if (osc.type !== p.wave) {
       if (now || last.tone === undefined) osc.type = p.wave;
-      else { // changement de timbre : on coupe brièvement pour éviter un clic
+      else { // timbre change: duck briefly to avoid a click
         tone.gain.setTargetAtTime(0, t, 0.008);
         setTimeout(() => { osc.type = p.wave; tone.gain.setTargetAtTime(last.tone, ctx.currentTime, 0.015); }, 50);
       }
@@ -145,7 +145,7 @@ export function createVoice(ctx, out, track, { fadeIn = 0.08 } = {}) {
     level.gain.setValueAtTime(0, t0);
     level.gain.linearRampToValueAtTime(last.gain, t0 + fadeIn);
   } else level.gain.setValueAtTime(last.gain, t0);
-  // Décalages différents par piste : deux pistes ne partagent jamais le même bruit.
+  // Different offsets per track: two tracks never share the same noise.
   const off = (track.id * 0.7371) % 3;
   osc.start(t0); lfo.start(t0);
   noise.start(t0, off); grainSrc.start(t0, (off * 1.37) % 3);
@@ -162,7 +162,7 @@ export function createVoice(ctx, out, track, { fadeIn = 0.08 } = {}) {
   };
 }
 
-/** Bus de sortie : normalisation selon le nombre de pistes + limiteur anti-saturation. */
+/** Output bus: normalisation by track count + anti-clipping limiter. */
 export function createMaster(ctx) {
   const input = ctx.createGain();
   const fade = ctx.createGain(); fade.gain.value = 0;
@@ -181,7 +181,7 @@ export function createMaster(ctx) {
   };
 }
 
-/** Lecture en direct. L'AudioContext n'est créé qu'au premier geste de l'utilisateur. */
+/** Live playback. The AudioContext is only created on the user's first gesture. */
 export class LiveEngine {
   constructor() {
     this.ctx = null; this.master = null; this.voices = new Map(); this.playing = false;
@@ -199,7 +199,7 @@ export class LiveEngine {
         this._ran = true;
         if (!this.playing && !this.voices.size) ctx.suspend().catch(() => {});
       } else if (this.playing && this._ran && ctx.state !== 'closed') {
-        // Interruption système (appel, autre application, verrouillage…)
+        // System interruption (call, other app, screen lock…)
         this.playing = false; this._ran = false;
         this._teardown();
         this.onChange(false); this.onInterrupt();
@@ -215,9 +215,9 @@ export class LiveEngine {
     hold(g, t); g.setValueAtTime(0, t);
   }
 
-  /** Doit être appelé directement dans un gestionnaire de clic / toucher (exigence iOS). */
+  /** Must be called directly inside a click / touch handler (iOS requirement). */
   start(tracks) {
-    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) { /* API facultative */ }
+    try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) { /* optional API */ }
     const ctx = this._ensure();
     const resumed = ctx.state === 'running' ? Promise.resolve() : ctx.resume();
     clearTimeout(this._idle);

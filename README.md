@@ -1,61 +1,61 @@
 # Tinnitus Studio
 
-Une application web, en français, pour recréer le son de ses acouphènes et le faire écouter à ses proches.
-Elle est 100 % statique : pas de serveur, pas de compte, pas de dépendance. Tout reste sur l’appareil.
+A web app for recreating the sound of your tinnitus and letting your loved ones hear it.
+It is 100% static: no server, no account, no dependencies. Everything stays on the device.
 
-> Ce n’est pas un outil médical : il ne diagnostique ni ne soigne. Les sons proposés sont des points de départ synthétiques, pas des références cliniques.
+> This is not a medical tool: it does not diagnose or treat anything. The preset sounds are synthetic starting points, not clinical references.
 
-## Parcours
+## User flow
 
-1. **À quoi ressemble votre acouphène ?** Six sons de départ, à écouter d’un toucher (ou « Partir de zéro »).
-2. **Affinez votre son**. Un spectre coloré : horizontalement plus grave ↔ plus aigu, verticalement son pur ↔ son diffus. Trois réglages secondaires : Intensité, Battement, Grain. Jusqu’à 4 sons superposés. Le panneau « Réglages supplémentaires » contient l’oreille, le timbre, la vitesse du battement, la largeur et l’affichage des fréquences.
-3. **Partager mon acouphène**. Un lien qui contient toute la composition (dans le fragment `#s=…`), ou un fichier WAV de 15 s généré localement.
+1. **What does your tinnitus sound like?** Six starting sounds, each playable with a single tap (or "Start from scratch").
+2. **Fine-tune your sound**. A colour spectrum: horizontally lower ↔ higher, vertically pure ↔ diffuse. Three secondary controls: Loudness, Pulse, Grain. Up to 4 layered sounds. The "More settings" panel holds the ear, tone, pulse speed, sound width and the option to show frequencies.
+3. **Share my tinnitus**. A link that contains the whole composition (in the `#s=…` fragment), or a 15-second WAV file generated locally.
 
-## Fichiers
+## Files
 
-| Fichier | Rôle |
+| File | Role |
 |---|---|
-| `index.html` | Structure des trois écrans et de la fenêtre de partage |
-| `style.css` | Design (mobile d’abord, adapté à l’ordinateur) |
-| `audio-engine.js` | Moteur de synthèse Web Audio (écoute en direct + graphe commun) |
-| `presets.js` | Modèle et validation des pistes, sons de départ |
-| `sharing.js` | Encodage compact et versionné des liens |
-| `export.js` | Rendu `OfflineAudioContext` et encodage WAV PCM 16 bits |
-| `app.js` | Interface |
+| `index.html` | Markup for the three screens and the share dialog |
+| `style.css` | Design (mobile first, adapted for desktop) |
+| `audio-engine.js` | Web Audio synthesis engine (live playback + shared graph) |
+| `presets.js` | Track model, validation and starting sounds |
+| `sharing.js` | Compact, versioned link encoding |
+| `export.js` | `OfflineAudioContext` rendering and 16-bit PCM WAV encoding |
+| `app.js` | User interface |
 
-L’export WAV utilise exactement la même fonction `createVoice()` que l’écoute en direct.
+The WAV export uses exactly the same `createVoice()` function as live playback.
 
-### Format du lien (v1)
+### Link format (v1)
 
-`#s=` suivi de la composition encodée en base64url : un octet de version, le nombre de pistes, puis 9 octets par piste (hauteur sur 16 bits, puis pureté, intensité, battement, grain, vitesse, largeur et drapeaux pour l’activation, l’oreille et le timbre), et enfin une somme de contrôle. Un lien de 4 pistes fait environ 55 caractères. À l’ouverture, la version, la longueur, la somme de contrôle et les valeurs sont toutes vérifiées. Un lien abîmé renvoie à l’accueil avec un message.
+`#s=` followed by the composition encoded in base64url: one version byte, the track count, then 9 bytes per track (pitch on 16 bits, then purity, loudness, pulse, grain, speed, width, and flags for on/off, ear and tone), and finally a checksum. A 4-track link is about 55 characters. On opening, the version, length, checksum and values are all validated. A damaged link returns to the home screen with a message.
 
-## Précautions auditives
+## Hearing safety
 
-- Volume initial bas, aucune lecture automatique (y compris à l’ouverture d’un lien).
-- Normalisation selon le nombre de pistes, plus un limiteur (`DynamicsCompressor`) contre la saturation.
-- Toutes les modifications sont lissées, ce qui évite les clics. Fondus en début et en fin de lecture et d’export.
-- Arrêt automatique quand la page passe en arrière-plan.
+- Low initial volume, no autoplay (including when opening a shared link).
+- Normalisation by track count, plus a limiter (`DynamicsCompressor`) against clipping.
+- All changes are smoothed to avoid clicks. Fades at the start and end of playback and export.
+- Playback stops automatically when the page goes to the background.
 
 ## iPhone / Safari
 
-- L’`AudioContext` n’est créé et repris (`resume()`) qu’à l’intérieur d’un geste de l’utilisateur.
-- Sur Safari 17 et plus, `navigator.audioSession.type = 'playback'` (API officielle) permet d’entendre le son même en mode silencieux. Sur les versions antérieures, un message rappelle de vérifier ce mode si le son ne démarre pas.
-- Les interruptions (appel, autre application) sont détectées : l’interface repasse sur « Écouter » et affiche un message.
-- Le spectre utilise `touch-action: none` : glisser le doigt ne fait pas défiler la page.
+- The `AudioContext` is only created and resumed (`resume()`) inside a user gesture.
+- On Safari 17 and later, `navigator.audioSession.type = 'playback'` (an official API) lets the sound play even in silent mode. On older versions, a message reminds the user to check that mode if the sound won't start.
+- Interruptions (call, another app) are detected: the UI switches back to "Listen" and shows a message.
+- The spectrum uses `touch-action: none`, so dragging a finger does not scroll the page.
 
-## Tester en local
+## Run locally
 
 ```bash
 python3 -m http.server 8000
-# puis ouvrir http://localhost:8000/
+# then open http://localhost:8000/
 ```
 
-Les modules ES ne se chargent pas en `file://`, il faut donc un serveur HTTP statique.
+ES modules don't load over `file://`, so a static HTTP server is required.
 
-## Publier sur GitHub Pages
+## Publish on GitHub Pages
 
-1. Pousser ces fichiers sur la branche à publier (par exemple `main`).
-2. Sur GitHub : **Settings → Pages → Build and deployment → Source : Deploy from a branch**, choisir la branche, puis le dossier `/ (root)`, et enregistrer.
-3. Après une à deux minutes, le site est disponible à `https://UTILISATEUR.github.io/NOM-DU-DEPOT/`.
+1. Push these files to the branch you want to publish (e.g. `main`).
+2. On GitHub: **Settings → Pages → Build and deployment → Source: Deploy from a branch**, choose the branch, then the `/ (root)` folder, and save.
+3. After a minute or two, the site is live at `https://USERNAME.github.io/REPO-NAME/`.
 
-Tous les chemins sont relatifs, et `.nojekyll` désactive le traitement Jekyll. Les liens de partage reprennent automatiquement le chemin du dépôt.
+All paths are relative, and `.nojekyll` disables Jekyll processing. Share links automatically keep the repository path.

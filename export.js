@@ -1,16 +1,16 @@
-// Export WAV local : même graphe de synthèse que l'écoute, rendu par OfflineAudioContext.
+// Local WAV export: same synthesis graph as live playback, rendered with OfflineAudioContext.
 import { createVoice, createMaster } from './audio-engine.js';
 
 const SR = 44100;
 
 export async function renderWav(tracks, seconds = 15) {
   const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
-  if (!OAC) throw new Error('OfflineAudioContext indisponible');
+  if (!OAC) throw new Error('OfflineAudioContext unavailable');
   const ctx = new OAC(2, SR * seconds, SR);
   const master = createMaster(ctx);
   master.setCount(tracks.filter(t => t.on).length, true);
   for (const t of tracks) createVoice(ctx, master.input, t, { fadeIn: 0 });
-  // Fondus très courts pour éviter tout clic au début et à la fin du fichier.
+  // Very short fades to avoid clicks at the start and end of the file.
   const g = master.fade.gain;
   g.setValueAtTime(0, 0);
   g.linearRampToValueAtTime(1, 0.05);
@@ -24,7 +24,7 @@ export async function renderWav(tracks, seconds = 15) {
   return encodeWav(buffer);
 }
 
-/** Encodage PCM 16 bits, entrelacé, en-tête RIFF standard. */
+/** 16-bit PCM encoding, interleaved, standard RIFF header. */
 export function encodeWav(buffer) {
   const ch = buffer.numberOfChannels, len = buffer.length, sr = buffer.sampleRate;
   const bytes = len * ch * 2;

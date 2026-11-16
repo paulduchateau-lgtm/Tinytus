@@ -1,11 +1,11 @@
-// Sérialisation compacte et versionnée d'une composition dans le fragment de l'URL.
+// Compact, versioned serialisation of a composition in the URL fragment.
 //
-// Format v1 (puis base64url) :
-//   [version=1][nombre de pistes 1..4]
-//   par piste : x (16 bits) · y · intensité · battement · grain · vitesse · largeur (8 bits chacun)
-//               · drapeaux (bit0 actif, bits1-2 oreille, bits3-4 timbre)
-//   [somme de contrôle : somme des octets précédents modulo 256]
-// Exemple : https://utilisateur.github.io/tinnitus-studio/#s=AQHXCgpNAAAAUoAB…
+// Format v1 (then base64url):
+//   [version=1][track count 1..4]
+//   per track: x (16 bits) · y · level · beat · grain · rate · width (8 bits each)
+//              · flags (bit0 on, bits1-2 ear, bits3-4 timbre)
+//   [checksum: sum of previous bytes modulo 256]
+// Example: https://username.github.io/tinnitus-studio/#s=AQHXCgpNAAAAUoAB…
 
 import { sanitizeTrack, EARS, WAVES, MAX_TRACKS } from './presets.js';
 
@@ -26,24 +26,24 @@ export function encodeShare(tracks) {
   return PREFIX + b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-/** Retourne les pistes, ou lève une erreur si le lien est invalide. */
+/** Returns the tracks, or throws if the link is invalid. */
 export function decodeShare(hash) {
   const raw = decodeURIComponent(String(hash).replace(/^#/, ''));
   if (!raw.startsWith(PREFIX)) throw new Error('format');
   const b64 = raw.slice(PREFIX.length).replace(/-/g, '+').replace(/_/g, '/');
-  if (!/^[A-Za-z0-9+/]+$/.test(b64)) throw new Error('caractères');
+  if (!/^[A-Za-z0-9+/]+$/.test(b64)) throw new Error('characters');
   const bin = atob(b64 + '='.repeat((4 - (b64.length % 4)) % 4));
   const b = Array.from(bin, c => c.charCodeAt(0));
   if (b[0] !== VERSION) throw new Error('version');
   const n = b[1];
-  if (!(n >= 1 && n <= MAX_TRACKS) || b.length !== 3 + n * PER_TRACK) throw new Error('longueur');
+  if (!(n >= 1 && n <= MAX_TRACKS) || b.length !== 3 + n * PER_TRACK) throw new Error('length');
   const sum = b.slice(0, -1).reduce((s, v) => s + v, 0) & 255;
-  if (sum !== b[b.length - 1]) throw new Error('contrôle');
+  if (sum !== b[b.length - 1]) throw new Error('checksum');
   const tracks = [];
   for (let i = 0; i < n; i++) {
     const o = 2 + i * PER_TRACK, f = b[o + 8];
     const ear = (f >> 1) & 3, wave = (f >> 3) & 3;
-    if (ear >= EARS.length || wave >= WAVES.length || f >> 5) throw new Error('valeurs');
+    if (ear >= EARS.length || wave >= WAVES.length || f >> 5) throw new Error('values');
     tracks.push(sanitizeTrack({
       x: ((b[o] << 8) | b[o + 1]) / 65535,
       y: b[o + 2] / 255, level: b[o + 3] / 255, beat: b[o + 4] / 255,

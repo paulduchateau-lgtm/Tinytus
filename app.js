@@ -1,4 +1,4 @@
-// Interface de Tinnitus Studio.
+// Tinnitus Studio user interface.
 import { LiveEngine, freqOf, rateOf } from './audio-engine.js';
 import { PRESETS, makeTrack, sanitizeTracks, MAX_TRACKS } from './presets.js';
 import { encodeShare, decodeShare } from './sharing.js';
@@ -9,15 +9,15 @@ const $$ = s => [...document.querySelectorAll(s)];
 const clamp = v => Math.min(1, Math.max(0, v));
 const COLORS = ['#3ee6d0', '#ff6fb5', '#a98bff', '#ffc46b'];
 const STORE_KEY = 'tinnitus-studio';
-const INSET = 22; // marge intérieure du spectre (px) : le point reste entièrement visible
+const INSET = 22; // inner margin of the spectrum (px): the dot stays fully visible
 
 const engine = new LiveEngine();
 const state = { tracks: [], sel: 0, showFreq: false };
 let screen = 'home';
-let preview = null;   // son préconfiguré en cours d'écoute sur l'accueil
-let shared = null;    // composition reçue par lien
+let preview = null;   // preset currently previewed on the home screen
+let shared = null;    // composition received through a link
 
-// ---------- Stockage local ----------
+// ---------- Local storage ----------
 function load() {
   try {
     const d = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
@@ -26,7 +26,7 @@ function load() {
     state.tracks = t;
     state.sel = Math.min(Math.max(0, d.sel | 0), t.length - 1);
     state.showFreq = !!d.showFreq;
-  } catch (e) { /* stockage indisponible ou corrompu : on repart de zéro */ }
+  } catch (e) { /* storage unavailable or corrupted: start fresh */ }
 }
 let saveTimer;
 function save() {
@@ -37,7 +37,7 @@ function save() {
         v: 1, sel: state.sel, showFreq: state.showFreq,
         tracks: state.tracks.map(({ id, ...t }) => t),
       }));
-    } catch (e) { /* navigation privée : ignoré */ }
+    } catch (e) { /* private browsing: ignored */ }
   }, 250);
 }
 
@@ -55,19 +55,19 @@ function toast(msg, ms = 4200) {
 const currentTracks = () => (screen === 'home' ? (preview ? preview.tracks : []) : screen === 'shared' ? shared || [] : state.tracks);
 
 function play(tracks) {
-  if (!engine.supported) return toast('Votre navigateur ne permet pas de générer du son.');
-  if (!tracks.some(t => t.on)) return toast('Tous les sons sont coupés. Réactivez-en au moins un.');
+  if (!engine.supported) return toast('Your browser cannot generate sound.');
+  if (!tracks.some(t => t.on)) return toast('All sounds are muted. Turn at least one back on.');
   engine.start(tracks);
   setTimeout(() => {
     if (engine.playing && engine.ctx && engine.ctx.state !== 'running') {
-      toast('Le son ne démarre pas. Touchez à nouveau « Écouter », vérifiez le volume et, sur iPhone, que le mode silencieux est désactivé.', 7000);
+      toast('The sound won’t start. Tap “Listen” again, check the volume and, on iPhone, make sure silent mode is off.', 7000);
     }
   }, 1500);
 }
 const refreshAudio = () => engine.sync(currentTracks());
 
 engine.onChange = () => updatePlayUI();
-engine.onInterrupt = () => toast('Le son a été interrompu. Touchez « Écouter » pour reprendre.');
+engine.onInterrupt = () => toast('The sound was interrupted. Tap “Listen” to resume.');
 document.addEventListener('visibilitychange', () => { if (document.hidden) engine.stop(true); });
 window.addEventListener('pagehide', () => engine.stop(true));
 
@@ -75,7 +75,7 @@ function updatePlayUI() {
   for (const b of $$('[data-play]')) {
     b.classList.toggle('on', engine.playing);
     b.setAttribute('aria-pressed', engine.playing);
-    b.querySelector('.lbl').textContent = engine.playing ? 'Arrêter' : b.dataset.play === 'shared' ? 'Écouter ce son' : 'Écouter';
+    b.querySelector('.lbl').textContent = engine.playing ? 'Stop' : b.dataset.play === 'shared' ? 'Listen to this sound' : 'Listen';
   }
   updateHome();
   if (screen === 'editor') positionDots();
@@ -101,7 +101,7 @@ function goEditor() {
 window.addEventListener('popstate', () => { if (screen === 'editor') show('home'); });
 $('#back').onclick = () => (history.state && history.state.s === 'editor' ? history.back() : show('home'));
 
-// ---------- Illustrations abstraites ----------
+// ---------- Abstract illustrations ----------
 function path(n, fn) {
   let d = '';
   for (let i = 0; i <= n; i++) { const x = (i / n) * 120; d += (i ? 'L' : 'M') + x.toFixed(1) + ' ' + (24 + fn(i / n)).toFixed(1); }
@@ -126,7 +126,7 @@ function art(kind) {
   return '';
 }
 
-// ---------- Accueil ----------
+// ---------- Home ----------
 function renderHome() {
   const box = $('#presets');
   for (const p of PRESETS) {
@@ -158,11 +158,11 @@ function updateHome() {
   }
   const btn = $('#toEditor');
   btn.disabled = !preview;
-  btn.textContent = preview ? 'Affiner ce son' : 'Choisissez un son';
+  btn.textContent = preview ? 'Fine-tune this sound' : 'Choose a sound';
 }
 $('#toEditor').onclick = () => {
   if (!preview) return;
-  state.tracks = preview.tracks; // mêmes objets : l'écoute continue sans coupure
+  state.tracks = preview.tracks; // same objects: playback continues seamlessly
   state.sel = 0;
   save();
   goEditor();
@@ -170,7 +170,7 @@ $('#toEditor').onclick = () => {
 $('#fromScratch').onclick = () => { state.tracks = [makeTrack()]; state.sel = 0; save(); engine.stop(); goEditor(); };
 $('#resume').onclick = () => { engine.stop(); goEditor(); };
 
-// ---------- Ajustement ----------
+// ---------- Editor ----------
 const cur = () => state.tracks[state.sel];
 
 function renderEditor() {
@@ -187,7 +187,7 @@ function renderTrackBar() {
     const b = document.createElement('button');
     b.className = 'pill' + (i === state.sel ? ' active' : '') + (t.on ? '' : ' muted');
     b.style.setProperty('--c', COLORS[i]);
-    b.innerHTML = `<i></i>Son ${i + 1}`;
+    b.innerHTML = `<i></i>Sound ${i + 1}`;
     b.setAttribute('aria-pressed', i === state.sel);
     b.onclick = () => { state.sel = i; save(); renderEditor(); };
     bar.append(b);
@@ -195,12 +195,12 @@ function renderTrackBar() {
   if (state.tracks.length < MAX_TRACKS) {
     const add = document.createElement('button');
     add.className = 'pill add';
-    add.textContent = '+ Ajouter un autre son';
+    add.textContent = '+ Add another sound';
     add.onclick = addTrack;
     bar.append(add);
   }
   $('#trackActions').hidden = state.tracks.length < 2;
-  $('#toggleTrack').textContent = cur().on ? 'Couper ce son' : 'Réactiver ce son';
+  $('#toggleTrack').textContent = cur().on ? 'Mute this sound' : 'Unmute this sound';
 }
 
 function addTrack() {
@@ -225,7 +225,7 @@ function changed(full = true) {
   if (full) renderEditor(); else { positionDots(); }
 }
 
-// Points du spectre
+// Spectrum dots
 function renderDots(layer, tracks, sel) {
   layer.innerHTML = '';
   tracks.forEach((t, i) => {
@@ -250,11 +250,11 @@ function positionDots() {
   placeDots($('#padDots'), state.tracks, engine.playing && screen === 'editor');
   const info = $('#freqInfo');
   info.hidden = !state.showFreq;
-  if (state.showFreq) info.textContent = state.tracks.map((t, i) => `Son ${i + 1} : ${fmtHz(freqOf(t.x))}`).join('  ·  ');
+  if (state.showFreq) info.textContent = state.tracks.map((t, i) => `Sound ${i + 1}: ${fmtHz(freqOf(t.x))}`).join('  ·  ');
 }
-const fmtHz = f => (f < 1000 ? `${Math.round(f / 5) * 5} Hz` : `${(f / 1000).toFixed(1).replace('.', ',')} kHz`);
+const fmtHz = f => (f < 1000 ? `${Math.round(f / 5) * 5} Hz` : `${(f / 1000).toFixed(1)} kHz`);
 
-// Interaction tactile sur le spectre
+// Touch interaction on the spectrum
 const pad = $('#pad');
 let dragging = false, hinted = false;
 function moveTo(e, r = pad.getBoundingClientRect()) {
@@ -267,7 +267,7 @@ pad.addEventListener('pointerdown', e => {
   if (e.button > 0) return;
   e.preventDefault();
   const r = pad.getBoundingClientRect();
-  // Toucher un autre point le sélectionne.
+  // Touching another dot selects it.
   let best = -1, bd = 30 * 30;
   state.tracks.forEach((t, i) => {
     const px = r.left + INSET + t.x * (r.width - 2 * INSET), py = r.top + INSET + t.y * (r.height - 2 * INSET);
@@ -275,13 +275,13 @@ pad.addEventListener('pointerdown', e => {
     if (d < bd) { bd = d; best = i; }
   });
   if (best >= 0 && best !== state.sel) { state.sel = best; renderEditor(); }
-  try { pad.setPointerCapture(e.pointerId); } catch (err) { /* ignoré */ }
+  try { pad.setPointerCapture(e.pointerId); } catch (err) { /* ignored */ }
   dragging = true;
   pad.classList.add('dragging');
   moveTo(e, r);
   if (!engine.playing && !hinted) {
     hinted = true;
-    toast('Touchez « Écouter » pour entendre vos réglages en direct.');
+    toast('Tap “Listen” to hear your changes live.');
     $('#play').classList.add('nudge');
   }
 });
@@ -299,7 +299,7 @@ pad.addEventListener('keydown', e => {
 });
 $('#play').addEventListener('animationend', e => e.target.classList.remove('nudge'));
 
-// Réglages
+// Controls
 const fill = el => el.style.setProperty('--v', (el.value * 100).toFixed(1) + '%');
 for (const k of ['level', 'beat', 'grain', 'rate', 'width']) {
   const el = $('#' + k);
@@ -324,7 +324,7 @@ function renderControls() {
 
 $('#play').onclick = () => (engine.playing ? engine.stop() : play(state.tracks));
 
-// ---------- Partage ----------
+// ---------- Sharing ----------
 const dialog = $('#shareDialog');
 let wavUrl = null, wavFile = null;
 const shareLink = () => location.href.split('#')[0] + '#' + encodeShare(state.tracks);
@@ -345,22 +345,22 @@ async function copy(text) {
     try { return document.execCommand('copy'); } catch (err) { return false; }
   }
 }
-$('#copyLink').onclick = async () => toast((await copy($('#shareUrl').value)) ? 'Lien copié. Collez-le dans un message.' : 'Sélectionnez le lien pour le copier.');
+$('#copyLink').onclick = async () => toast((await copy($('#shareUrl').value)) ? 'Link copied. Paste it into a message.' : 'Select the link to copy it.');
 $('#nativeShare').onclick = async () => {
   try {
-    await navigator.share({ title: 'Mon acouphène', text: 'Voici ce que j’entends en permanence. Baisse un peu le volume avant d’écouter.', url: $('#shareUrl').value });
-  } catch (e) { if (e.name !== 'AbortError') toast('Le partage n’a pas abouti. Utilisez « Copier le lien ».'); }
+    await navigator.share({ title: 'My tinnitus', text: 'This is what I hear all the time. Turn the volume down a little before listening.', url: $('#shareUrl').value });
+  } catch (e) { if (e.name !== 'AbortError') toast('Sharing didn’t work. Use “Copy link”.'); }
 };
 
 $('#makeWav').onclick = async () => {
   const btn = $('#makeWav');
-  if (!state.tracks.some(t => t.on)) return toast('Tous les sons sont coupés. Réactivez-en au moins un.');
-  btn.disabled = true; btn.textContent = 'Création du fichier…';
+  if (!state.tracks.some(t => t.on)) return toast('All sounds are muted. Turn at least one back on.');
+  btn.disabled = true; btn.textContent = 'Creating the file…';
   try {
     const blob = await renderWav(state.tracks, 15);
     if (wavUrl) URL.revokeObjectURL(wavUrl);
     wavUrl = URL.createObjectURL(blob);
-    wavFile = new File([blob], 'mon-acouphene.wav', { type: 'audio/wav' });
+    wavFile = new File([blob], 'my-tinnitus.wav', { type: 'audio/wav' });
     $('#wavDownload').href = wavUrl;
     $('#wavPreview').src = wavUrl;
     $('#wavShare').hidden = !(navigator.canShare && navigator.canShare({ files: [wavFile] }));
@@ -368,28 +368,28 @@ $('#makeWav').onclick = async () => {
     btn.hidden = true;
   } catch (e) {
     console.error(e);
-    toast('Impossible de créer le fichier sur cet appareil.');
-  } finally { btn.disabled = false; btn.textContent = 'Créer le fichier audio'; }
+    toast('Unable to create the file on this device.');
+  } finally { btn.disabled = false; btn.textContent = 'Create the audio file'; }
 };
 $('#wavPreview').addEventListener('play', () => engine.stop());
 $('#wavShare').onclick = async () => {
-  try { await navigator.share({ files: [wavFile], title: 'Mon acouphène' }); } catch (e) {
-    if (e.name !== 'AbortError') toast('Le partage n’a pas abouti. Utilisez « Enregistrer ».');
+  try { await navigator.share({ files: [wavFile], title: 'My tinnitus' }); } catch (e) {
+    if (e.name !== 'AbortError') toast('Sharing didn’t work. Use “Save”.');
   }
 };
 
-// ---------- Lien reçu ----------
+// ---------- Received link ----------
 function readHash() {
   const h = location.hash.slice(1);
   if (!h) return false;
   try { shared = decodeShare(h); } catch (e) {
     shared = null;
     history.replaceState(null, '', location.pathname + location.search);
-    toast('Ce lien de partage est incomplet ou abîmé.');
+    toast('This share link is incomplete or damaged.');
     return false;
   }
   const n = shared.length;
-  $('#sharedInfo').textContent = n > 1 ? `${n} sons superposés` : '';
+  $('#sharedInfo').textContent = n > 1 ? `${n} layered sounds` : '';
   renderDots($('#sharedDots'), shared, -1);
   show('shared');
   return true;
@@ -403,7 +403,7 @@ $('#sharedEdit').onclick = () => { state.tracks = shared; state.sel = 0; save();
 $('#sharedNew').onclick = () => { clearHash(); show('home'); };
 window.addEventListener('hashchange', () => { engine.stop(); if (!readHash() && screen === 'shared') show('home'); });
 
-// ---------- Démarrage ----------
+// ---------- Startup ----------
 load();
 renderHome();
 if (!readHash()) show('home');
