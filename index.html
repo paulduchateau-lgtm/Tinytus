@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#070b1e">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="Recréez le son de vos acouphènes et faites-le écouter à vos proches.">
+  <meta property="og:title" content="Tinnitus Studio — écoutez ce que j’entends">
+  <meta property="og:description" content="Un son recréé pour faire comprendre ses acouphènes.">
+  <title>Tinnitus Studio</title>
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <linearGradient id="spec" x1="0" x2="1" y1="0" y2="0">
+        <stop offset="0" stop-color="#28e0cf"/><stop offset=".35" stop-color="#2f8bff"/>
+        <stop offset=".66" stop-color="#8a5cff"/><stop offset="1" stop-color="#ff5fa8"/>
+      </linearGradient>
+    </defs>
+  </svg>
+
+  <main id="app">
+    <!-- 1. Choix d'un son -->
+    <section id="home" class="screen">
+      <p class="brand"><span class="brand-dot"></span>Tinnitus Studio</p>
+      <h1>À quoi ressemble votre acouphène&nbsp;?</h1>
+      <p class="lead">Touchez un son pour l’écouter, puis choisissez celui qui s’en rapproche le plus.</p>
+      <p class="caution"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/></svg>Commencez avec un volume bas.</p>
+      <button id="resume" class="resume" hidden>
+        <span class="resume-art"></span><span><strong>Reprendre mon son</strong><small>Votre dernière composition</small></span><span class="chev">›</span>
+      </button>
+      <div id="presets" class="presets"></div>
+      <button id="fromScratch" class="link">Partir de zéro</button>
+      <div class="cta-bar"><button id="toEditor" class="primary" disabled>Choisissez un son</button></div>
+    </section>
+
+    <!-- 2. Ajustement -->
+    <section id="editor" class="screen" hidden>
+      <header class="bar">
+        <button id="back" class="icon-btn" aria-label="Retour aux sons">‹</button>
+        <h2>Affinez votre son</h2>
+        <span></span>
+      </header>
+      <div class="editor-grid">
+        <div class="pad-col">
+          <div id="tracks" class="tracks"></div>
+          <div id="pad" class="pad" tabindex="0" role="application" aria-label="Spectre : glissez horizontalement pour un son plus grave ou plus aigu, verticalement pour un son plus pur ou plus diffus">
+            <div class="pad-surface"><div class="pad-grain"></div></div>
+            <span class="pad-lbl t">Son pur</span>
+            <span class="pad-lbl b">Son diffus</span>
+            <span class="pad-lbl l">Plus grave</span>
+            <span class="pad-lbl r">Plus aigu</span>
+            <div id="padDots"></div>
+          </div>
+          <p id="freqInfo" class="freq-info" hidden></p>
+          <div id="trackActions" class="track-actions" hidden>
+            <button id="toggleTrack" class="chip">Couper ce son</button>
+            <button id="deleteTrack" class="chip danger">Supprimer</button>
+          </div>
+        </div>
+
+        <div class="ctl-col">
+          <div class="controls">
+            <label class="ctl"><span class="ctl-name">Intensité</span>
+              <input type="range" id="level" min="0" max="1" step="0.005">
+              <span class="ends"><span>Douce</span><span>Forte</span></span></label>
+            <label class="ctl"><span class="ctl-name">Battement</span>
+              <input type="range" id="beat" min="0" max="1" step="0.005">
+              <span class="ends"><span>Continu</span><span>Pulsant</span></span></label>
+            <label class="ctl"><span class="ctl-name">Grain</span>
+              <input type="range" id="grain" min="0" max="1" step="0.005">
+              <span class="ends"><span>Lisse</span><span>Granuleux</span></span></label>
+          </div>
+
+          <div class="play-bar">
+            <button id="play" class="play" data-play="editor" aria-pressed="false"><span class="ico"></span><span class="lbl">Écouter</span></button>
+          </div>
+          <p class="note">Gardez un volume confortable et arrêtez si le son devient gênant.</p>
+
+          <button id="share" class="primary share-btn">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l4 4h-3v8h-2V7H8l4-4zM5 13h2v6h10v-6h2v8H5v-8z" fill="currentColor"/></svg>
+            Partager mon acouphène</button>
+
+          <details class="more">
+            <summary>Réglages supplémentaires</summary>
+            <div class="more-body">
+              <div class="ctl"><span class="ctl-name">Oreille</span>
+                <div class="seg" id="ear">
+                  <button data-v="L">Gauche</button><button data-v="B">Les deux</button><button data-v="R">Droite</button>
+                </div></div>
+              <div class="ctl"><span class="ctl-name">Timbre</span>
+                <div class="seg" id="wave">
+                  <button data-v="sine">Doux</button><button data-v="triangle">Rond</button><button data-v="sawtooth">Riche</button>
+                </div></div>
+              <label class="ctl"><span class="ctl-name">Vitesse du battement</span>
+                <input type="range" id="rate" min="0" max="1" step="0.005">
+                <span class="ends"><span>Lente</span><span>Rapide</span></span></label>
+              <label class="ctl"><span class="ctl-name">Largeur du son</span>
+                <input type="range" id="width" min="0" max="1" step="0.005">
+                <span class="ends"><span>Étroit</span><span>Large</span></span></label>
+              <label class="switch-row"><span>Afficher les fréquences</span><input type="checkbox" id="showFreq" class="switch"></label>
+            </div>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. Lien reçu -->
+    <section id="shared" class="screen" hidden>
+      <p class="brand"><span class="brand-dot"></span>Tinnitus Studio</p>
+      <div class="orb" aria-hidden="true"></div>
+      <h1>Écoutez ce que j’entends</h1>
+      <p class="lead">Ce son a été recréé par une personne qui vit avec des acouphènes, pour vous faire comprendre ce qu’elle perçoit.</p>
+      <div class="pad mini" aria-hidden="true"><div class="pad-surface"><div class="pad-grain"></div></div><div id="sharedDots"></div></div>
+      <p id="sharedInfo" class="note"></p>
+      <button id="sharedPlay" class="play big" data-play="shared" aria-pressed="false"><span class="ico"></span><span class="lbl">Écouter ce son</span></button>
+      <p class="caution center"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/></svg>Baissez un peu le volume avant d’écouter.</p>
+      <button id="sharedEdit" class="link">Modifier ce son</button>
+      <button id="sharedNew" class="link">Recréer mes propres acouphènes</button>
+    </section>
+
+    <footer class="foot">Tinnitus Studio aide à faire entendre ce que vous percevez. Ce n’est pas un outil médical&nbsp;: il ne diagnostique ni ne soigne. Tout reste sur votre appareil.</footer>
+  </main>
+
+  <dialog id="shareDialog" aria-labelledby="shareTitle">
+    <form method="dialog"><button class="icon-btn close" aria-label="Fermer">×</button></form>
+    <h2 id="shareTitle">Partager mon acouphène</h2>
+    <div class="share-block">
+      <h3>Envoyer un lien</h3>
+      <p>Vos proches l’écoutent dans leur navigateur, sans compte ni installation.</p>
+      <input id="shareUrl" readonly aria-label="Lien de partage">
+      <div class="row">
+        <button id="nativeShare" class="primary">Partager le lien</button>
+        <button id="copyLink" class="secondary">Copier le lien</button>
+      </div>
+    </div>
+    <div class="share-block">
+      <h3>Télécharger le son</h3>
+      <p>Un fichier audio de 15&nbsp;secondes, créé sur votre appareil.</p>
+      <button id="makeWav" class="secondary">Créer le fichier audio</button>
+      <div id="wavReady" hidden>
+        <audio id="wavPreview" controls preload="auto"></audio>
+        <div class="row">
+          <a id="wavDownload" class="secondary btn" download="mon-acouphene.wav">Enregistrer</a>
+          <button id="wavShare" class="primary" hidden>Partager le fichier</button>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
