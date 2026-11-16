@@ -109,7 +109,7 @@ function fade(from, to, done) {
 function session(ctrl) {
   if (!('mediaSession' in navigator)) return;
   try {
-    navigator.mediaSession.metadata = new MediaMetadata({ title: tx('My tinnitus'), artist: 'Tinnitus Studio', artwork: [{ src: 'icon.svg', sizes: '512x512', type: 'image/svg+xml' }] });
+    navigator.mediaSession.metadata = new MediaMetadata({ title: tx('My tinnitus'), artist: 'tinytus', artwork: [512, 1024].map(n => ({ src: new URL(`images/cover-${n}.jpg`, location.href).href, sizes: `${n}x${n}`, type: 'image/jpeg' })) });
     navigator.mediaSession.playbackState = 'playing';
     for (const a of ['pause', 'stop']) navigator.mediaSession.setActionHandler(a, () => ctrl.stop());
   } catch (e) { /* optional API */ }

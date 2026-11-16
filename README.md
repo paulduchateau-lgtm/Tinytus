@@ -23,6 +23,7 @@ The look follows the **tinytus design system**: a warm "Day" theme by default (c
 |---|---|
 | `index.html` | Markup for the three screens and the share dialog |
 | `style.css` | tinytus design system: tokens (Day / Night themes), component styles, app layout |
+| `images/` | Link preview (`og-image.jpg`, 1200×630) and lock-screen cover (`cover-*.jpg`); `images/source/` holds the HTML they are rendered from |
 | `fonts/` | Chillax (headlines, self-hosted, ITF Free Font License); Figtree comes from Google Fonts |
 | `audio-engine.js` | Web Audio synthesis engine (live playback + shared graph) |
 | `presets.js` | Track model, validation and starting sounds |
