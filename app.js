@@ -9,7 +9,7 @@ import { LANG, tx, localizePage } from './i18n.js';
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
 const clamp = v => Math.min(1, Math.max(0, v));
-const COLORS = ['#3ee6d0', '#ff6fb5', '#a98bff', '#ffc46b'];
+const COLORS = [1, 2, 3, 4].map(n => `var(--track-${n})`); // design tokens, follow the theme
 const STORE_KEY = 'tinnitus-studio';
 const INSET = 22; // inner margin of the spectrum (px): the dot stays fully visible
 
@@ -48,9 +48,9 @@ let toastTimer;
 function toast(msg, ms = 4200) {
   const el = $('#toast');
   el.textContent = msg;
-  el.classList.add('show');
+  el.classList.add('tt-toast--show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove('show'), ms);
+  toastTimer = setTimeout(() => el.classList.remove('tt-toast--show'), ms);
 }
 
 // ---------- Audio ----------
@@ -72,19 +72,22 @@ const refreshAudio = () => engine.sync(currentTracks());
 engine.onChange = () => updatePlayUI();
 engine.onInterrupt = () => toast(tx('The sound was interrupted. Tap “Listen” to resume.'));
 
-// Long listening (30 minutes, keeps playing with the screen locked)
-const LONG_MINUTES = 30;
-function toggleLong(tracks) {
+// Long listening, keeps playing with the screen locked.
+// Editor "Loop" tab: plays until stopped (6 h max, the size limit of one WAV stream).
+// Received-link screen: "Listen for 30 min".
+const LONG_MINUTES = 30, LOOP_MINUTES = 360;
+function toggleLong(tracks, minutes = LONG_MINUTES) {
   if (longListen.active) return longListen.stop();
   if (!tracks.some(t => t.on)) return toast(tx('All sounds are muted. Turn at least one back on.'));
   engine.stop(true);
-  longListen.start(tracks, LONG_MINUTES).catch(e => { console.error(e); toast(tx('Long listening could not start on this device.')); });
+  longListen.start(tracks, minutes).catch(e => { console.error(e); toast(tx('Long listening could not start on this device.')); });
 }
 const mmss = ms => { const t = Math.ceil(ms / 1000); return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`; };
 function updateLongUI() {
   for (const b of $$('[data-long]')) {
-    b.classList.toggle('on', longListen.active);
+    b.classList.toggle(b.dataset.on, longListen.active);
     b.setAttribute('aria-pressed', longListen.active);
+    if (b.dataset.long === 'tab') { b.querySelector('.long-lbl').textContent = longListen.active && !longListen.ready ? tx('Preparing…') : tx('Loop'); continue; }
     b.querySelector('.long-lbl').textContent = !longListen.active ? tx('Listen for {n} min', { n: LONG_MINUTES })
       : longListen.ready ? tx('Stop · {t} left', { t: mmss(longListen.remaining()) }) : tx('Preparing…');
   }
@@ -92,14 +95,14 @@ function updateLongUI() {
 longListen.onChange = updateLongUI;
 updateLongUI();
 setInterval(() => { if (longListen.ready) updateLongUI(); }, 1000);
-$('#longPlay').onclick = () => toggleLong(state.tracks);
+$('#longPlay').onclick = () => toggleLong(state.tracks, LOOP_MINUTES);
 $('#sharedLong').onclick = () => toggleLong(shared);
 document.addEventListener('visibilitychange', () => { if (document.hidden) engine.stop(true); });
 window.addEventListener('pagehide', () => engine.stop(true));
 
 function updatePlayUI() {
   for (const b of $$('[data-play]')) {
-    b.classList.toggle('on', engine.playing);
+    b.classList.toggle(b.dataset.on, engine.playing);
     b.setAttribute('aria-pressed', engine.playing);
     b.querySelector('.lbl').textContent = tx(engine.playing ? 'Stop' : b.dataset.play === 'shared' ? 'Listen to this sound' : 'Listen');
   }
@@ -148,7 +151,7 @@ function art(kind) {
     }
     case 'crackle': return svg(`<path d="${path(70, () => (r() < 0.35 ? 0 : (r() * 2 - 1) * 18))}" ${sw} stroke-width="1.6"/>`);
     case 'pulse': return svg(`<path d="${path(300, t => 14 * Math.pow(Math.abs(Math.sin(t * Math.PI * 3)), 2) * Math.sin(t * 2 * Math.PI * 22))}" ${sw} stroke-width="1.8"/>`);
-    case 'multi': return svg(`<path d="${path(240, t => 10 * Math.sin(t * 2 * Math.PI * 4))}" ${sw} stroke-width="2.4" opacity=".9"/><path d="${path(240, t => 6 * Math.sin(t * 2 * Math.PI * 11 + 1))}" stroke="#fff" fill="none" stroke-width="1.3" opacity=".75"/>`);
+    case 'multi': return svg(`<path d="${path(240, t => 10 * Math.sin(t * 2 * Math.PI * 4))}" ${sw} stroke-width="2.4" opacity=".9"/><path d="${path(240, t => 6 * Math.sin(t * 2 * Math.PI * 11 + 1))}" stroke="currentColor" fill="none" stroke-width="1.3" opacity=".55"/>`);
   }
   return '';
 }
@@ -158,14 +161,14 @@ function renderHome() {
   const box = $('#presets');
   for (const p of PRESETS) {
     const b = document.createElement('button');
-    b.className = 'card';
+    b.className = 'tt-card';
     b.dataset.id = p.id;
     b.setAttribute('aria-pressed', 'false');
-    b.innerHTML = `<span class="card-art">${art(p.art)}</span><span class="card-name">${LANG === 'fr' ? p.fr[0] : p.name}</span><span class="card-desc">${LANG === 'fr' ? p.fr[1] : p.desc}</span><span class="card-eq" aria-hidden="true"><i></i><i></i><i></i></span>`;
+    b.innerHTML = `<span class="tt-card-art">${art(p.art)}</span><span class="tt-card-name">${LANG === 'fr' ? p.fr[0] : p.name}</span><span class="tt-card-desc">${LANG === 'fr' ? p.fr[1] : p.desc}</span><span class="tt-eq" aria-hidden="true"><i></i><i></i><i></i></span>`;
     b.onclick = () => pickPreset(p);
     box.append(b);
   }
-  $('.resume-art').innerHTML = art('multi');
+  $('.tt-resume-art').innerHTML = art('multi');
 }
 function pickPreset(p) {
   if (preview && preview.id === p.id) {
@@ -177,10 +180,10 @@ function pickPreset(p) {
   updateHome();
 }
 function updateHome() {
-  for (const c of $$('.card')) {
+  for (const c of $$('.tt-card')) {
     const sel = !!preview && c.dataset.id === preview.id;
-    c.classList.toggle('selected', sel);
-    c.classList.toggle('playing', sel && engine.playing && screen === 'home');
+    c.classList.toggle('tt-card--selected', sel);
+    c.classList.toggle('tt-card--playing', sel && engine.playing && screen === 'home');
     c.setAttribute('aria-pressed', sel);
   }
   const btn = $('#toEditor');
@@ -212,7 +215,7 @@ function renderTrackBar() {
   bar.innerHTML = '';
   state.tracks.forEach((t, i) => {
     const b = document.createElement('button');
-    b.className = 'pill' + (i === state.sel ? ' active' : '') + (t.on ? '' : ' muted');
+    b.className = 'tt-pill' + (i === state.sel ? ' tt-pill--active' : '') + (t.on ? '' : ' tt-pill--muted');
     b.style.setProperty('--c', COLORS[i]);
     b.innerHTML = `<i></i>${tx('Sound {n}', { n: i + 1 })}`;
     b.setAttribute('aria-pressed', i === state.sel);
@@ -221,7 +224,7 @@ function renderTrackBar() {
   });
   if (state.tracks.length < MAX_TRACKS) {
     const add = document.createElement('button');
-    add.className = 'pill add';
+    add.className = 'tt-pill tt-pill--add';
     add.textContent = tx('+ Add another sound');
     add.onclick = addTrack;
     bar.append(add);
@@ -248,7 +251,7 @@ $('#deleteTrack').onclick = () => {
 
 let longHinted = false;
 function changed(full = true) {
-  if (longListen.active && !longHinted) { longHinted = true; toast(tx('Changes will apply next time you start the 30-minute listening.')); }
+  if (longListen.active && !longHinted) { longHinted = true; toast(tx('Changes will apply next time you start the loop.')); }
   if (screen === 'editor') refreshAudio();
   save();
   if (full) renderEditor(); else { positionDots(); }
@@ -259,7 +262,7 @@ function renderDots(layer, tracks, sel) {
   layer.innerHTML = '';
   tracks.forEach((t, i) => {
     const d = document.createElement('span');
-    d.className = 'dot' + (i === sel ? ' current' : '') + (t.on ? '' : ' off');
+    d.className = 'tt-dot' + (i === sel ? ' tt-dot--current' : '') + (t.on ? '' : ' tt-dot--off');
     d.style.setProperty('--c', COLORS[i]);
     layer.append(d);
   });
@@ -272,7 +275,7 @@ function placeDots(layer, tracks, playing = false) {
     d.style.setProperty('--x', t.x);
     d.style.setProperty('--y', t.y);
     d.style.setProperty('--bd', (1 / rateOf(t.rate)).toFixed(3) + 's');
-    d.classList.toggle('beating', playing && t.on && t.beat > 0.12);
+    d.classList.toggle('tt-dot--beating', playing && t.on && t.beat > 0.12);
   });
 }
 function positionDots() {
@@ -306,17 +309,17 @@ pad.addEventListener('pointerdown', e => {
   if (best >= 0 && best !== state.sel) { state.sel = best; renderEditor(); }
   try { pad.setPointerCapture(e.pointerId); } catch (err) { /* ignored */ }
   dragging = true;
-  pad.classList.add('dragging');
+  pad.classList.add('tt-pad--dragging');
   moveTo(e, r);
   if (!engine.playing && !hinted) {
     hinted = true;
     toast(tx('Tap “Listen” to hear your changes live.'));
-    $('#play').classList.add('nudge');
+    $('#play').classList.add('tt-tab--nudge');
   }
 });
 pad.addEventListener('pointermove', e => { if (dragging) moveTo(e); });
 for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) {
-  pad.addEventListener(ev, () => { if (dragging) { dragging = false; pad.classList.remove('dragging'); renderControls(); } });
+  pad.addEventListener(ev, () => { if (dragging) { dragging = false; pad.classList.remove('tt-pad--dragging'); renderControls(); } });
 }
 pad.addEventListener('keydown', e => {
   const k = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key];
@@ -326,7 +329,7 @@ pad.addEventListener('keydown', e => {
   t.x = clamp(t.x + k[0] * 0.02); t.y = clamp(t.y + k[1] * 0.04);
   changed(false);
 });
-$('#play').addEventListener('animationend', e => e.target.classList.remove('nudge'));
+$('#play').addEventListener('animationend', e => e.target.classList.remove('tt-tab--nudge'));
 
 // Controls
 const fill = el => el.style.setProperty('--v', (el.value * 100).toFixed(1) + '%');
@@ -431,6 +434,26 @@ $('#sharedPlay').onclick = () => {
 $('#sharedEdit').onclick = () => { state.tracks = shared; state.sel = 0; save(); clearHash(); engine.stop(); show('editor'); };
 $('#sharedNew').onclick = () => { clearHash(); show('home'); };
 window.addEventListener('hashchange', () => { engine.stop(); longListen.stop(); if (!readHash() && screen === 'shared') show('home'); });
+
+// ---------- Theme ----------
+function applyTheme(night) {
+  if (night) document.documentElement.dataset.theme = 'night'; else delete document.documentElement.dataset.theme;
+  for (const b of $$('[data-theme-toggle]')) {
+    b.classList.toggle('tt-theme--night', night);
+    b.setAttribute('aria-checked', night);
+    b.children[0].classList.toggle('on', !night);
+    b.children[1].classList.toggle('on', night);
+  }
+  $('meta[name=theme-color]').content = night ? '#070b1e' : '#fbf5ee';
+}
+for (const b of $$('[data-theme-toggle]')) {
+  b.onclick = () => {
+    const night = document.documentElement.dataset.theme !== 'night';
+    applyTheme(night);
+    try { localStorage.setItem('tinytus-theme', night ? 'night' : 'day'); } catch (e) { /* private mode */ }
+  };
+}
+applyTheme(document.documentElement.dataset.theme === 'night');
 
 // ---------- Startup ----------
 localizePage();

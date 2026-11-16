@@ -1,4 +1,4 @@
-# Tinnitus Studio
+# tinytus
 
 A web app for recreating the sound of your tinnitus and letting your loved ones hear it.
 It is 100% static: no server, no account, no dependencies. Everything stays on the device.
@@ -6,6 +6,10 @@ It is 100% static: no server, no account, no dependencies. Everything stays on t
 > This is not a medical tool: it does not diagnose or treat anything. The preset sounds are synthetic starting points, not clinical references.
 
 The interface is in English, and switches to French automatically when the phone or browser's preferred language is French.
+
+## Design
+
+The look follows the **tinytus design system**: a warm "Day" theme by default (cream background, honey → tangerine → rose → plum spectrum) and the original dark palette as "Night", switched with the sun/moon pill at the top of every screen and remembered per device. Headlines use Chillax, everything else Figtree. In the editor, a sticky bar holds **Listen · Loop · Share**: Loop plays the sound as one continuous stream until stopped (up to 6 hours), even with the screen locked.
 
 ## User flow
 
@@ -18,7 +22,8 @@ The interface is in English, and switches to French automatically when the phone
 | File | Role |
 |---|---|
 | `index.html` | Markup for the three screens and the share dialog |
-| `style.css` | Design (mobile first, adapted for desktop) |
+| `style.css` | tinytus design system: tokens (Day / Night themes), component styles, app layout |
+| `fonts/` | Chillax (headlines, self-hosted, ITF Free Font License); Figtree comes from Google Fonts |
 | `audio-engine.js` | Web Audio synthesis engine (live playback + shared graph) |
 | `presets.js` | Track model, validation and starting sounds |
 | `sharing.js` | Compact, versioned link encoding |

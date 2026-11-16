@@ -3,165 +3,180 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#070b1e">
-  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#fbf5ee">
   <meta name="description" content="Recreate the sound of your tinnitus and let your loved ones hear it.">
-  <meta property="og:title" content="Tinnitus Studio — hear what I hear">
+  <meta property="og:title" content="tinytus — hear what I hear">
   <meta property="og:description" content="A recreated sound to help others understand tinnitus.">
-  <title>Tinnitus Studio</title>
+  <title>tinytus</title>
+  <!-- Apply the saved theme before the first paint (no flash). -->
+  <script>try { if (localStorage.getItem('tinytus-theme') === 'night') document.documentElement.dataset.theme = 'night'; } catch (e) {}</script>
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400..700&display=swap">
+  <link rel="preload" href="fonts/Chillax-Variable.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="style.css">
   <script type="module" src="app.js"></script>
   <!-- Vercel Web Analytics: cookie-free visitor counts (only active once deployed on Vercel) -->
   <script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
   <script defer src="/_vercel/insights/script.js"></script>
 </head>
-<body>
+<body class="tt-app">
   <svg width="0" height="0" style="position:absolute" aria-hidden="true">
     <defs>
       <linearGradient id="spec" x1="0" x2="1" y1="0" y2="0">
-        <stop offset="0" stop-color="#28e0cf"/><stop offset=".35" stop-color="#2f8bff"/>
-        <stop offset=".66" stop-color="#8a5cff"/><stop offset="1" stop-color="#ff5fa8"/>
+        <stop offset="0" style="stop-color:var(--spec-1)"/><stop offset=".35" style="stop-color:var(--spec-2)"/>
+        <stop offset=".66" style="stop-color:var(--spec-3)"/><stop offset="1" style="stop-color:var(--spec-4)"/>
       </linearGradient>
+      <symbol id="i-volume" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/></symbol>
+      <symbol id="i-clock" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9 9 9 0 0 0-9-9zm0 16a7 7 0 1 1 7-7 7 7 0 0 1-7 7zm.5-11H11v5l4.2 2.5.8-1.2-3.5-2.1z" fill="currentColor"/></symbol>
+      <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 3l4 4h-3v8h-2V7H8l4-4zM5 13h2v6h10v-6h2v8H5v-8z" fill="currentColor"/></symbol>
+      <!-- Lucide (ISC): sun, moon, infinity -->
+      <symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v2M12 20v2m-7.07-17.07 1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/><path d="M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0Z"/></symbol>
+      <symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+      <symbol id="i-infinity" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 12c-2-2.67-4-4-6-4a4 4 0 1 0 0 8c2 0 4-1.33 6-4Zm0 0c2 2.67 4 4 6 4a4 4 0 0 0 0-8c-2 0-4 1.33-6 4Z"/></symbol>
     </defs>
   </svg>
 
   <main id="app">
     <!-- 1. Choose a sound -->
-    <section id="home" class="screen">
-      <p class="brand"><span class="brand-dot"></span>Tinnitus Studio</p>
-      <h1>What does your tinnitus sound like?</h1>
-      <p class="lead">Tap a sound to hear it, then pick the one that comes closest.</p>
-      <p class="caution"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/></svg>Start with a low volume.</p>
-      <button id="resume" class="resume" hidden>
-        <span class="resume-art"></span><span><strong>Continue with my sound</strong><small>Your latest composition</small></span><span class="chev">›</span>
+    <section id="home" class="screen tt-screen">
+      <div class="tt-topbar">
+        <p class="tt-brand"><span class="tt-brand-dot"></span>tinytus</p>
+        <button class="tt-theme" data-theme-toggle role="switch" aria-checked="false" aria-label="Night mode"><span class="on"><svg><use href="#i-sun"/></svg></span><span><svg><use href="#i-moon"/></svg></span></button>
+      </div>
+      <h1 class="tt-h1">What does your tinnitus sound like?</h1>
+      <p class="tt-lead">Tap a sound to hear it, then pick the one that comes closest.</p>
+      <p class="tt-caution"><svg aria-hidden="true"><use href="#i-volume"/></svg>Start with a low volume.</p>
+      <button id="resume" class="tt-resume" hidden>
+        <span class="tt-resume-art"></span><span><strong>Continue with my sound</strong><small>Your latest composition</small></span><span class="tt-chev">›</span>
       </button>
-      <div id="presets" class="presets"></div>
-      <button id="fromScratch" class="link">Start from scratch</button>
-      <div class="cta-bar"><button id="toEditor" class="primary" disabled>Choose a sound</button></div>
+      <div id="presets" class="tt-presets"></div>
+      <button id="fromScratch" class="tt-link">Start from scratch</button>
+      <div class="tt-sticky"><button id="toEditor" class="tt-btn tt-btn--primary" disabled>Choose a sound</button></div>
     </section>
 
     <!-- 2. Editor -->
-    <section id="editor" class="screen" hidden>
-      <header class="bar">
-        <button id="back" class="icon-btn" aria-label="Back to sounds">‹</button>
-        <h2>Fine-tune your sound</h2>
-        <span></span>
+    <section id="editor" class="screen tt-screen" hidden>
+      <header class="editor-bar">
+        <button id="back" class="tt-icon-btn" aria-label="Back to sounds">‹</button>
+        <h2 class="tt-h2">Fine-tune your sound</h2>
+        <button class="tt-theme" data-theme-toggle role="switch" aria-checked="false" aria-label="Night mode"><span class="on"><svg><use href="#i-sun"/></svg></span><span><svg><use href="#i-moon"/></svg></span></button>
       </header>
       <div class="editor-grid">
         <div class="pad-col">
-          <div id="tracks" class="tracks"></div>
-          <div id="pad" class="pad" tabindex="0" role="application" aria-label="Spectrum: drag horizontally for a lower or higher sound, vertically for a purer or more diffuse sound">
-            <div class="pad-surface"><div class="pad-grain"></div></div>
-            <span class="pad-lbl t">Pure</span>
-            <span class="pad-lbl b">Diffuse</span>
-            <span class="pad-lbl l">Lower</span>
-            <span class="pad-lbl r">Higher</span>
+          <div id="tracks" class="tt-tracks"></div>
+          <div id="pad" class="tt-pad" tabindex="0" role="application" aria-label="Spectrum: drag horizontally for a lower or higher sound, vertically for a purer or more diffuse sound">
+            <div class="tt-pad-surface"><div class="tt-pad-grain"></div></div>
+            <span class="tt-pad-lbl t">Pure</span>
+            <span class="tt-pad-lbl b">Diffuse</span>
+            <span class="tt-pad-lbl l">Lower</span>
+            <span class="tt-pad-lbl r">Higher</span>
             <div id="padDots"></div>
           </div>
-          <p id="freqInfo" class="freq-info" hidden></p>
+          <p id="freqInfo" class="tt-freq" hidden></p>
           <div id="trackActions" class="track-actions" hidden>
-            <button id="toggleTrack" class="chip">Mute this sound</button>
-            <button id="deleteTrack" class="chip danger">Remove</button>
+            <button id="toggleTrack" class="tt-chip">Mute this sound</button>
+            <button id="deleteTrack" class="tt-chip tt-chip--danger">Remove</button>
           </div>
         </div>
 
         <div class="ctl-col">
-          <div class="controls">
-            <label class="ctl"><span class="ctl-name">Loudness</span>
-              <input type="range" id="level" min="0" max="1" step="0.005">
-              <span class="ends"><span>Quiet</span><span>Loud</span></span></label>
-            <label class="ctl"><span class="ctl-name">Pulse</span>
-              <input type="range" id="beat" min="0" max="1" step="0.005">
-              <span class="ends"><span>Steady</span><span>Pulsing</span></span></label>
-            <label class="ctl"><span class="ctl-name">Grain</span>
-              <input type="range" id="grain" min="0" max="1" step="0.005">
-              <span class="ends"><span>Smooth</span><span>Grainy</span></span></label>
+          <div class="tt-controls">
+            <label class="tt-ctl"><span class="tt-ctl-name">Loudness</span>
+              <input type="range" class="tt-range" id="level" min="0" max="1" step="0.005">
+              <span class="tt-ends"><span>Quiet</span><span>Loud</span></span></label>
+            <label class="tt-ctl"><span class="tt-ctl-name">Pulse</span>
+              <input type="range" class="tt-range" id="beat" min="0" max="1" step="0.005">
+              <span class="tt-ends"><span>Steady</span><span>Pulsing</span></span></label>
+            <label class="tt-ctl"><span class="tt-ctl-name">Grain</span>
+              <input type="range" class="tt-range" id="grain" min="0" max="1" step="0.005">
+              <span class="tt-ends"><span>Smooth</span><span>Grainy</span></span></label>
           </div>
 
-          <div class="play-bar">
-            <button id="play" class="play" data-play="editor" aria-pressed="false"><span class="ico"></span><span class="lbl">Listen</span></button>
-          </div>
-          <button id="longPlay" class="long-btn" data-long aria-pressed="false">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9 9 9 0 0 0-9-9zm0 16a7 7 0 1 1 7-7 7 7 0 0 1-7 7zm.5-11H11v5l4.2 2.5.8-1.2-3.5-2.1z" fill="currentColor"/></svg>
-        <span><span class="long-lbl">Listen for 30 min</span><small>Keeps playing with the screen locked</small></span></button>
-          <p class="note">Keep the volume comfortable and stop if the sound becomes unpleasant.</p>
-
-          <button id="share" class="primary share-btn">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l4 4h-3v8h-2V7H8l4-4zM5 13h2v6h10v-6h2v8H5v-8z" fill="currentColor"/></svg>
-            Share my tinnitus</button>
-
-          <details class="more">
+          <details class="tt-more">
             <summary>More settings</summary>
-            <div class="more-body">
-              <div class="ctl"><span class="ctl-name">Ear</span>
-                <div class="seg" id="ear">
+            <div class="tt-more-body">
+              <div class="tt-ctl"><span class="tt-ctl-name">Ear</span>
+                <div class="tt-seg" id="ear">
                   <button data-v="L">Left</button><button data-v="B">Both</button><button data-v="R">Right</button>
                 </div></div>
-              <div class="ctl"><span class="ctl-name">Tone</span>
-                <div class="seg" id="wave">
+              <div class="tt-ctl"><span class="tt-ctl-name">Tone</span>
+                <div class="tt-seg" id="wave">
                   <button data-v="sine">Soft</button><button data-v="triangle">Round</button><button data-v="sawtooth">Rich</button>
                 </div></div>
-              <label class="ctl"><span class="ctl-name">Pulse speed</span>
-                <input type="range" id="rate" min="0" max="1" step="0.005">
-                <span class="ends"><span>Slow</span><span>Fast</span></span></label>
-              <label class="ctl"><span class="ctl-name">Sound width</span>
-                <input type="range" id="width" min="0" max="1" step="0.005">
-                <span class="ends"><span>Narrow</span><span>Wide</span></span></label>
-              <label class="switch-row"><span>Show frequencies</span><input type="checkbox" id="showFreq" class="switch"></label>
+              <label class="tt-ctl"><span class="tt-ctl-name">Pulse speed</span>
+                <input type="range" class="tt-range" id="rate" min="0" max="1" step="0.005">
+                <span class="tt-ends"><span>Slow</span><span>Fast</span></span></label>
+              <label class="tt-ctl"><span class="tt-ctl-name">Sound width</span>
+                <input type="range" class="tt-range" id="width" min="0" max="1" step="0.005">
+                <span class="tt-ends"><span>Narrow</span><span>Wide</span></span></label>
+              <label class="tt-switch-row"><span>Show frequencies</span><input type="checkbox" id="showFreq" class="tt-switch"></label>
             </div>
           </details>
+          <p class="tt-note">Keep the volume comfortable and stop if the sound becomes unpleasant.</p>
         </div>
+      </div>
+
+      <div class="tt-tabbar-wrap">
+        <nav class="tt-tabbar" aria-label="Sound actions">
+          <button id="play" class="tt-tab tt-tab--listen" data-play="editor" data-on="on" aria-pressed="false"><span class="tt-play-ico"></span><span class="lbl tt-tab-lbl">Listen</span></button>
+          <button id="longPlay" class="tt-tab tt-tab--toggle" data-long="tab" data-on="on" aria-pressed="false"><svg aria-hidden="true"><use href="#i-infinity"/></svg><span class="long-lbl tt-tab-lbl">Loop</span></button>
+          <button id="share" class="tt-tab"><svg aria-hidden="true"><use href="#i-share"/></svg><span class="tt-tab-lbl">Share</span></button>
+        </nav>
       </div>
     </section>
 
     <!-- 3. Received link -->
-    <section id="shared" class="screen" hidden>
-      <p class="brand"><span class="brand-dot"></span>Tinnitus Studio</p>
-      <div class="orb" aria-hidden="true"></div>
-      <h1>Hear what I hear</h1>
-      <p class="lead">This sound was recreated by someone living with tinnitus, to help you understand what they hear.</p>
-      <div class="pad mini" aria-hidden="true"><div class="pad-surface"><div class="pad-grain"></div></div><div id="sharedDots"></div></div>
-      <p id="sharedInfo" class="note"></p>
-      <button id="sharedPlay" class="play big" data-play="shared" aria-pressed="false"><span class="ico"></span><span class="lbl">Listen to this sound</span></button>
-      <button id="sharedLong" class="long-btn" data-long aria-pressed="false">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 9 9 9 9 0 0 0-9-9zm0 16a7 7 0 1 1 7-7 7 7 0 0 1-7 7zm.5-11H11v5l4.2 2.5.8-1.2-3.5-2.1z" fill="currentColor"/></svg>
-        <span><span class="long-lbl">Listen for 30 min</span><small>Keeps playing with the screen locked</small></span></button>
-      <p class="caution center"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/></svg>Turn the volume down a little before listening.</p>
-      <button id="sharedEdit" class="link">Edit this sound</button>
-      <button id="sharedNew" class="link">Recreate my own tinnitus</button>
+    <section id="shared" class="screen tt-screen" hidden>
+      <div class="tt-topbar">
+        <p class="tt-brand"><span class="tt-brand-dot"></span>tinytus</p>
+        <button class="tt-theme" data-theme-toggle role="switch" aria-checked="false" aria-label="Night mode"><span class="on"><svg><use href="#i-sun"/></svg></span><span><svg><use href="#i-moon"/></svg></span></button>
+      </div>
+      <div class="tt-orb" aria-hidden="true"></div>
+      <h1 class="tt-h1">Hear what I hear</h1>
+      <p class="tt-lead">This sound was recreated by someone living with tinnitus, to help you understand what they hear.</p>
+      <div class="tt-pad tt-pad--mini" aria-hidden="true"><div class="tt-pad-surface"><div class="tt-pad-grain"></div></div><div id="sharedDots"></div></div>
+      <p id="sharedInfo" class="tt-note"></p>
+      <button id="sharedPlay" class="tt-play tt-play--big" data-play="shared" data-on="tt-play--on" aria-pressed="false"><span class="tt-play-ico"></span><span class="lbl">Listen to this sound</span></button>
+      <button id="sharedLong" class="tt-long" data-long="button" data-on="tt-long--on" aria-pressed="false">
+        <svg aria-hidden="true"><use href="#i-clock"/></svg>
+        <span><span class="long-lbl tt-long-lbl">Listen for 30 min</span><small>Keeps playing with the screen locked</small></span></button>
+      <p class="tt-caution center"><svg aria-hidden="true"><use href="#i-volume"/></svg>Turn the volume down a little before listening.</p>
+      <button id="sharedEdit" class="tt-link">Edit this sound</button>
+      <button id="sharedNew" class="tt-link">Recreate my own tinnitus</button>
     </section>
 
-    <footer class="foot">Tinnitus Studio helps others hear what you perceive. It is not a medical tool: it does not diagnose or treat anything. Everything stays on your device.</footer>
+    <footer class="tt-foot">tinytus helps others hear what you perceive. It is not a medical tool: it does not diagnose or treat anything. Everything stays on your device.</footer>
   </main>
 
-  <dialog id="shareDialog" aria-labelledby="shareTitle">
-    <form method="dialog"><button class="icon-btn close" aria-label="Close">×</button></form>
-    <h2 id="shareTitle">Share my tinnitus</h2>
-    <div class="share-block">
+  <dialog id="shareDialog" class="tt-dialog" aria-labelledby="shareTitle">
+    <form method="dialog"><button class="tt-icon-btn tt-dialog-close" aria-label="Close">×</button></form>
+    <h2 id="shareTitle" class="tt-dialog-title">Share my tinnitus</h2>
+    <div class="tt-share-block">
       <h3>Send a link</h3>
       <p>Your loved ones listen in their browser, with no account or install.</p>
-      <input id="shareUrl" readonly aria-label="Share link">
-      <div class="row">
-        <button id="nativeShare" class="primary">Share link</button>
-        <button id="copyLink" class="secondary">Copy link</button>
+      <input id="shareUrl" class="tt-input" readonly aria-label="Share link">
+      <div class="tt-row">
+        <button id="nativeShare" class="tt-btn tt-btn--primary">Share link</button>
+        <button id="copyLink" class="tt-btn tt-btn--secondary">Copy link</button>
       </div>
     </div>
-    <div class="share-block">
+    <div class="tt-share-block">
       <h3>Download the sound</h3>
       <p>A 15-second audio file, created on your device.</p>
-      <button id="makeWav" class="secondary">Create the audio file</button>
+      <button id="makeWav" class="tt-btn tt-btn--secondary">Create the audio file</button>
       <div id="wavReady" hidden>
         <audio id="wavPreview" controls preload="auto"></audio>
-        <div class="row">
-          <a id="wavDownload" class="secondary btn" download="my-tinnitus.wav">Save</a>
-          <button id="wavShare" class="primary" hidden>Share file</button>
+        <div class="tt-row">
+          <a id="wavDownload" class="tt-btn tt-btn--secondary" download="my-tinnitus.wav">Save</a>
+          <button id="wavShare" class="tt-btn tt-btn--primary" hidden>Share file</button>
         </div>
       </div>
     </div>
   </dialog>
 
-  <div id="toast" role="status" aria-live="polite"></div>
+  <div id="toast" class="tt-toast" role="status" aria-live="polite"></div>
 </body>
 </html>

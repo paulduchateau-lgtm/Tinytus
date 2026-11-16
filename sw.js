@@ -40,7 +40,7 @@ async function serve(req, url) {
   const loop = await loadLoop(url);
   if (!loop) return new Response('Not found', { status: 404 });
   const { pcm, sr, ch } = loop, L = pcm.length, frame = ch * 2;
-  const minutes = Math.min(120, Math.max(1, +url.searchParams.get('m') || 30));
+  const minutes = Math.min(360, Math.max(1, +url.searchParams.get('m') || 30)) /* 6 h stays under the 4 GB WAV limit */;
   const dataLen = Math.ceil((minutes * 60 * sr * frame) / L) * L, total = 44 + dataLen;
   const header = wavHeader(dataLen, sr, ch);
   const samples = dataLen / 2, fadeInS = Math.round(sr * FADE_IN) * ch, fadeOutS = Math.round(sr * FADE_OUT) * ch;

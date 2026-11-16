@@ -54,6 +54,13 @@ const FR = {
   'A 15-second audio file, created on your device.': 'Un fichier audio de 15 secondes, créé sur votre appareil.',
   'Create the audio file': 'Créer le fichier audio', 'Creating the file…': 'Création du fichier…',
   'Save': 'Enregistrer', 'Share file': 'Partager le fichier',
+  'Changes will apply next time you start the loop.': 'Les changements s’appliqueront au prochain lancement de la boucle.',
+  'Loop': 'Boucle',
+  'Share': 'Partager',
+  'Night mode': 'Mode nuit',
+  'Sound actions': 'Actions sur le son',
+  'tinytus helps others hear what you perceive. It is not a medical tool: it does not diagnose or treat anything. Everything stays on your device.':
+    'tinytus aide à faire entendre ce que vous percevez. Ce n’est pas un outil médical\u00a0: il ne diagnostique ni ne soigne. Tout reste sur votre appareil.',
   // Dynamic texts
   'Sound {n}': 'Son {n}',
   'Sound {n}: {f}': 'Son {n} : {f}',
