@@ -43,6 +43,10 @@ The WAV export uses exactly the same `createVoice()` function as live playback.
 - Interruptions (call, another app) are detected: the UI switches back to "Listen" and shows a message.
 - The spectrum uses `touch-action: none`, so dragging a finger does not scroll the page.
 
+## Audience statistics
+
+The page loads Vercel Web Analytics (`/_vercel/insights/script.js`): cookie-free, no personal data, no consent banner needed. Turn it on in the Vercel project under **Analytics → Enable** to see unique visitors, countries, devices and referrers. The URL fragment (`#s=…`, the shared sound) is never sent. Outside Vercel the script simply does not load.
+
 ## Run locally
 
 ```bash
