@@ -22,6 +22,7 @@ It is 100% static: no server, no account, no dependencies. Everything stays on t
 | `sharing.js` | Compact, versioned link encoding |
 | `export.js` | `OfflineAudioContext` rendering, seamless loop and 16-bit PCM WAV encoding |
 | `long-listen.js` | 30-minute listening that keeps playing with the screen locked |
+| `sw.js` | Service worker that streams the 30-minute listening as one continuous file |
 | `app.js` | User interface |
 
 The WAV export uses exactly the same `createVoice()` function as live playback.
@@ -32,7 +33,13 @@ The WAV export uses exactly the same `createVoice()` function as live playback.
 
 ## 30-minute listening
 
-A 30-minute WAV would weigh about 300 MB. Instead, the browser renders a **20-second loop that repeats exactly** (about 3.5 MB): pitch and pulse are rounded to whole cycles per loop (under 0.025 Hz, inaudible) and the noise buffers last 4 s, so the end joins the start with no seam. The loop starts on its quietest sample to avoid a click. An `<audio loop>` element plays it, so it keeps going with the screen locked and shows lock-screen controls (Media Session). It stops on its own after 30 minutes.
+A 30-minute WAV would weigh about 300 MB. Instead:
+
+1. The browser renders a **20-second loop that repeats exactly** (about 3.5 MB): pitch and pulse are rounded to whole cycles per loop (under 0.025 Hz, inaudible) and the noise buffers last 4 s, so the end joins the start perfectly.
+2. The loop is stored locally (Cache API), and the service worker `sw.js` serves `long/<id>.wav` as **one continuous 30-minute WAV generated on the fly**, with Range request support and fades written into the first 0.6 s and last 2.5 s. The long file never exists in memory or on the network.
+3. An `<audio>` element plays it, so it keeps going with the screen locked, shows lock-screen controls (Media Session) and ends by itself.
+
+Why not just `audio.loop`? On iPhone, an audio element leaves a tiny gap each time it loops, which is heard as a click. With a single continuous file there is no loop point. `audio.loop` is only used as a fallback when service workers are unavailable.
 
 ## Hearing safety
 

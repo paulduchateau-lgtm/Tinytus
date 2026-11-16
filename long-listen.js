@@ -1,38 +1,64 @@
-// Long listening: a seamless 20-second loop played by an <audio> element for 30 minutes.
-// An audio element (unlike Web Audio) keeps playing with the screen locked and shows
-// lock-screen controls. The file stays small (about 3.5 MB) whatever the duration.
+// Long listening (30 minutes) that keeps playing with the screen locked.
+//
+// The browser renders a seamless 20-second loop (about 3.5 MB). The service worker (sw.js)
+// then serves it to an <audio> element as ONE continuous 30-minute WAV generated on the fly,
+// with fades baked in: no loop point, so no gap or click, even on iPhone where looping an
+// audio element leaves a tiny gap. If service workers are unavailable, the loop is played
+// with `audio.loop` as a fallback.
 import { renderLoop, encodeWav } from './export.js';
 
+const CACHE = 'tinnitus-long';
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
+
 const audio = new Audio();
-audio.loop = true;
 audio.preload = 'auto';
 audio.setAttribute('playsinline', '');
 
-const silence = n => URL.createObjectURL(encodeWav({ numberOfChannels: 1, length: n, sampleRate: 44100, getChannelData: () => new Float32Array(n) }));
-const SILENCE = silence(4410);
-let url = null, endAt = 0, busy = false, fadeTimer;
+const SILENCE = URL.createObjectURL(encodeWav({ numberOfChannels: 1, length: 4410, sampleRate: 44100, getChannelData: () => new Float32Array(4410) }));
+let blobUrl = null, endAt = 0, busy = false, streaming = false, fadeTimer;
+
+/** Stores the loop where the service worker can read it; returns the stream URL, or null. */
+async function prepareStream(blob, minutes) {
+  if (!navigator.serviceWorker || !navigator.serviceWorker.controller || !window.caches) return null;
+  try {
+    const id = Date.now().toString(36);
+    const cache = await caches.open(CACHE);
+    for (const k of await cache.keys()) await cache.delete(k); // keep only the latest loop
+    const pcm = await blob.slice(44).arrayBuffer();
+    await cache.put(new URL(`long/${id}.pcm`, location.href).href, new Response(pcm, { headers: { 'x-sr': '44100', 'x-ch': '2' } }));
+    return `long/${id}.wav?m=${minutes}`;
+  } catch (e) { return null; }
+}
 
 export const longListen = {
   active: false,
   onChange: () => {},
   get ready() { return this.active && endAt > 0; },
-  remaining: () => Math.max(0, endAt - Date.now()),
+  remaining() {
+    if (streaming && Number.isFinite(audio.duration)) return Math.max(0, (audio.duration - audio.currentTime) * 1000);
+    return Math.max(0, endAt - Date.now());
+  },
 
-  /** Call directly from a tap: the silent play() unlocks the element on iOS before rendering. */
+  /** Call directly from a tap: the silent play() unlocks the element on iOS while the loop renders. */
   async start(tracks, minutes = 30) {
     this.stop();
     this.active = true; busy = true; endAt = 0;
     this.onChange();
+    audio.loop = false;
     audio.src = SILENCE;
     const unlock = audio.play().catch(() => {});
     try {
       const blob = await renderLoop(tracks);
+      const stream = await prepareStream(blob, minutes);
       await unlock;
       if (!this.active) return;
-      if (url) URL.revokeObjectURL(url);
-      url = URL.createObjectURL(blob);
-      audio.src = url;
-      fade(0, 1);
+      streaming = !!stream;
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
+      blobUrl = stream ? null : URL.createObjectURL(blob);
+      audio.loop = !stream;
+      audio.src = stream || blobUrl;
+      audio.volume = 1;
+      if (!stream) fade(0, 1);
       await audio.play();
       endAt = Date.now() + minutes * 60000;
       session(this);
@@ -51,7 +77,7 @@ export const longListen = {
   },
 };
 
-// Volume fades work on desktop and Android; iOS ignores volume (the loop starts on its quietest point anyway).
+// Volume fades work on desktop and Android; iOS ignores volume (the stream has its own fades).
 function fade(from, to, done) {
   clearInterval(fadeTimer);
   let k = 0;
@@ -72,7 +98,8 @@ function session(ctrl) {
   } catch (e) { /* optional API */ }
 }
 
-// Ends after the chosen duration; timeupdate keeps firing while the screen is locked.
-audio.addEventListener('timeupdate', () => { if (longListen.ready && Date.now() >= endAt) longListen.stop(); });
+// Fallback mode ends on a timer; stream mode ends with the file itself.
+audio.addEventListener('timeupdate', () => { if (longListen.ready && !streaming && Date.now() >= endAt) longListen.stop(); });
+audio.addEventListener('ended', () => { if (longListen.ready) { longListen.active = false; endAt = 0; longListen.onChange(); } });
 // Paused from outside (headphones unplugged, lock screen, phone call): reflect it in the UI.
 audio.addEventListener('pause', () => { if (longListen.ready && !busy) { longListen.active = false; endAt = 0; longListen.onChange(); } });
