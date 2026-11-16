@@ -77,7 +77,7 @@
   --link: #b9c3ff;
   --link-underline: rgba(185, 195, 255, .4);
   --danger: #ff9cb5;
-  --spec-1: #28e0cf; --spec-2: #2f8bff; --spec-3: #8a5cff; --spec-4: #ff5fa8;
+  --spec-1: #129d93; --spec-2: #1f5fd0; --spec-3: #5b37c9; --spec-4: #c23a82; /* deeper than the original for the dark theme */
   --track-1: #3ee6d0; --track-2: #ff6fb5; --track-3: #a98bff; --track-4: #ffc46b;
   --accent: var(--track-1);
   --play-bg: #ffffff; --play-fg: #0b1030; --play-on-bg: #151c44; --play-on-fg: #ffffff;
@@ -437,3 +437,18 @@ a.tt-btn { color: inherit; }
 /* Toast: fixed above the bottom bars */
 .tt-toast { position: fixed; bottom: calc(100px + env(safe-area-inset-bottom)); }
 .tt-foot { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
+
+/* Grain on the spectrum: barely there at the top (pure), clearly visible at the bottom (diffuse).
+   A light speckle (overlay) plus a darker speckle (soft-light) that only appears in the lower half. */
+.tt-pad-grain {
+  opacity: 1;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1.9 -.35'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  -webkit-mask-image: linear-gradient(to bottom, transparent 10%, rgba(0, 0, 0, .55) 50%, #000 80%);
+  mask-image: linear-gradient(to bottom, transparent 10%, rgba(0, 0, 0, .55) 50%, #000 80%);
+}
+.tt-pad-grain::after {
+  content: ""; position: absolute; inset: 0; mix-blend-mode: soft-light; opacity: .9;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 2.2 -.6'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23m)'/%3E%3C/svg%3E");
+  -webkit-mask-image: linear-gradient(to bottom, transparent 45%, #000 95%);
+  mask-image: linear-gradient(to bottom, transparent 45%, #000 95%);
+}
