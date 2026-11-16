@@ -39,20 +39,30 @@ export async function renderWav(tracks, seconds = 15) {
  */
 export const LOOP_SECONDS = 20;
 export async function renderLoop(tracks, period = LOOP_SECONDS) {
-  const warm = 2, ctx = offline(period + warm);
+  const warm = 2, xf = Math.round(SR * 0.08), n = SR * period, s0 = SR * warm;
+  const ctx = offline(period + warm + 0.1);
   build(ctx, tracks, { period }).fade.gain.setValueAtTime(1, 0);
   const buf = await render(ctx);
-  const n = SR * period, s0 = SR * warm;
-  const src = [buf.getChannelData(0), buf.getChannelData(1)];
+  // Crossfade the first 80 ms with what follows the period: whatever tiny drift a browser's
+  // oscillators accumulate over 20 s, the end of the loop now flows exactly into its start.
+  const looped = [0, 1].map(c => {
+    const a = buf.getChannelData(c), out = a.slice(s0, s0 + n);
+    for (let i = 0; i < xf; i++) {
+      const g = i / xf;
+      out[i] = a[s0 + i] * g + a[s0 + n + i] * (1 - g);
+    }
+    return out;
+  });
+  // Rotate the (circular) loop so it starts on its quietest sample.
   let best = 0, low = Infinity;
   for (let i = 0; i < n; i++) {
-    const v = Math.abs(src[0][s0 + i]) + Math.abs(src[1][s0 + i]);
+    const v = Math.abs(looped[0][i]) + Math.abs(looped[1][i]);
     if (v < low) { low = v; best = i; }
   }
-  const ch = src.map(c => {
+  const ch = looped.map(c => {
     const out = new Float32Array(n);
-    out.set(c.subarray(s0 + best, s0 + n));
-    out.set(c.subarray(s0, s0 + best), n - best);
+    out.set(c.subarray(best));
+    out.set(c.subarray(0, best), n - best);
     return out;
   });
   return encodeWav({ numberOfChannels: 2, length: n, sampleRate: SR, getChannelData: c => ch[c] });

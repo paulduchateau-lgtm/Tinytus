@@ -19,8 +19,17 @@ let blobUrl = null, endAt = 0, busy = false, streaming = false, fadeTimer;
 
 /** Stores the loop where the service worker can read it; returns the stream URL, or null. */
 async function prepareStream(blob, minutes) {
-  if (!navigator.serviceWorker || !navigator.serviceWorker.controller || !window.caches) return null;
+  if (!navigator.serviceWorker || !window.caches) return null;
   try {
+    // On a first visit the worker may still be starting: wait for it (up to 4 s) rather than
+    // falling back to audio.loop, which leaves an audible gap on iPhone at every repeat.
+    if (!navigator.serviceWorker.controller) {
+      await Promise.race([
+        navigator.serviceWorker.ready.then(() => new Promise(r => (navigator.serviceWorker.controller ? r() : navigator.serviceWorker.addEventListener('controllerchange', r, { once: true })))),
+        new Promise(r => setTimeout(r, 4000)),
+      ]);
+    }
+    if (!navigator.serviceWorker.controller) return null;
     const id = Date.now().toString(36);
     const cache = await caches.open(CACHE);
     for (const k of await cache.keys()) await cache.delete(k); // keep only the latest loop
@@ -59,7 +68,14 @@ export const longListen = {
       audio.src = stream || blobUrl;
       audio.volume = 1;
       if (!stream) fade(0, 1);
-      await audio.play();
+      try { await audio.play(); } catch (e) {
+        if (!stream) throw e;
+        // The stream could not be played: fall back to the looped file.
+        streaming = false;
+        blobUrl = URL.createObjectURL(blob);
+        audio.loop = true; audio.src = blobUrl; fade(0, 1);
+        await audio.play();
+      }
       endAt = Date.now() + minutes * 60000;
       session(this);
     } catch (e) {
