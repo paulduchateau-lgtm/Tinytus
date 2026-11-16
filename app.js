@@ -4,6 +4,7 @@ import { PRESETS, makeTrack, sanitizeTracks, MAX_TRACKS } from './presets.js';
 import { encodeShare, decodeShare } from './sharing.js';
 import { renderWav } from './export.js';
 import { longListen } from './long-listen.js';
+import { LANG, tx, localizePage } from './i18n.js';
 
 const $ = s => document.querySelector(s);
 const $$ = s => [...document.querySelectorAll(s)];
@@ -56,39 +57,40 @@ function toast(msg, ms = 4200) {
 const currentTracks = () => (screen === 'home' ? (preview ? preview.tracks : []) : screen === 'shared' ? shared || [] : state.tracks);
 
 function play(tracks) {
-  if (!engine.supported) return toast('Your browser cannot generate sound.');
-  if (!tracks.some(t => t.on)) return toast('All sounds are muted. Turn at least one back on.');
+  if (!engine.supported) return toast(tx('Your browser cannot generate sound.'));
+  if (!tracks.some(t => t.on)) return toast(tx('All sounds are muted. Turn at least one back on.'));
   longListen.stop();
   engine.start(tracks);
   setTimeout(() => {
     if (engine.playing && engine.ctx && engine.ctx.state !== 'running') {
-      toast('The sound won’t start. Tap “Listen” again, check the volume and, on iPhone, make sure silent mode is off.', 7000);
+      toast(tx('The sound won’t start. Tap “Listen” again, check the volume and, on iPhone, make sure silent mode is off.'), 7000);
     }
   }, 1500);
 }
 const refreshAudio = () => engine.sync(currentTracks());
 
 engine.onChange = () => updatePlayUI();
-engine.onInterrupt = () => toast('The sound was interrupted. Tap “Listen” to resume.');
+engine.onInterrupt = () => toast(tx('The sound was interrupted. Tap “Listen” to resume.'));
 
 // Long listening (30 minutes, keeps playing with the screen locked)
 const LONG_MINUTES = 30;
 function toggleLong(tracks) {
   if (longListen.active) return longListen.stop();
-  if (!tracks.some(t => t.on)) return toast('All sounds are muted. Turn at least one back on.');
+  if (!tracks.some(t => t.on)) return toast(tx('All sounds are muted. Turn at least one back on.'));
   engine.stop(true);
-  longListen.start(tracks, LONG_MINUTES).catch(e => { console.error(e); toast('Long listening could not start on this device.'); });
+  longListen.start(tracks, LONG_MINUTES).catch(e => { console.error(e); toast(tx('Long listening could not start on this device.')); });
 }
 const mmss = ms => { const t = Math.ceil(ms / 1000); return `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`; };
 function updateLongUI() {
   for (const b of $$('[data-long]')) {
     b.classList.toggle('on', longListen.active);
     b.setAttribute('aria-pressed', longListen.active);
-    b.querySelector('.long-lbl').textContent = !longListen.active ? `Listen for ${LONG_MINUTES} min`
-      : longListen.ready ? `Stop · ${mmss(longListen.remaining())} left` : 'Preparing…';
+    b.querySelector('.long-lbl').textContent = !longListen.active ? tx('Listen for {n} min', { n: LONG_MINUTES })
+      : longListen.ready ? tx('Stop · {t} left', { t: mmss(longListen.remaining()) }) : tx('Preparing…');
   }
 }
 longListen.onChange = updateLongUI;
+updateLongUI();
 setInterval(() => { if (longListen.ready) updateLongUI(); }, 1000);
 $('#longPlay').onclick = () => toggleLong(state.tracks);
 $('#sharedLong').onclick = () => toggleLong(shared);
@@ -99,7 +101,7 @@ function updatePlayUI() {
   for (const b of $$('[data-play]')) {
     b.classList.toggle('on', engine.playing);
     b.setAttribute('aria-pressed', engine.playing);
-    b.querySelector('.lbl').textContent = engine.playing ? 'Stop' : b.dataset.play === 'shared' ? 'Listen to this sound' : 'Listen';
+    b.querySelector('.lbl').textContent = tx(engine.playing ? 'Stop' : b.dataset.play === 'shared' ? 'Listen to this sound' : 'Listen');
   }
   updateHome();
   if (screen === 'editor') positionDots();
@@ -159,7 +161,7 @@ function renderHome() {
     b.className = 'card';
     b.dataset.id = p.id;
     b.setAttribute('aria-pressed', 'false');
-    b.innerHTML = `<span class="card-art">${art(p.art)}</span><span class="card-name">${p.name}</span><span class="card-desc">${p.desc}</span><span class="card-eq" aria-hidden="true"><i></i><i></i><i></i></span>`;
+    b.innerHTML = `<span class="card-art">${art(p.art)}</span><span class="card-name">${LANG === 'fr' ? p.fr[0] : p.name}</span><span class="card-desc">${LANG === 'fr' ? p.fr[1] : p.desc}</span><span class="card-eq" aria-hidden="true"><i></i><i></i><i></i></span>`;
     b.onclick = () => pickPreset(p);
     box.append(b);
   }
@@ -183,7 +185,7 @@ function updateHome() {
   }
   const btn = $('#toEditor');
   btn.disabled = !preview;
-  btn.textContent = preview ? 'Fine-tune this sound' : 'Choose a sound';
+  btn.textContent = tx(preview ? 'Fine-tune this sound' : 'Choose a sound');
 }
 $('#toEditor').onclick = () => {
   if (!preview) return;
@@ -212,7 +214,7 @@ function renderTrackBar() {
     const b = document.createElement('button');
     b.className = 'pill' + (i === state.sel ? ' active' : '') + (t.on ? '' : ' muted');
     b.style.setProperty('--c', COLORS[i]);
-    b.innerHTML = `<i></i>Sound ${i + 1}`;
+    b.innerHTML = `<i></i>${tx('Sound {n}', { n: i + 1 })}`;
     b.setAttribute('aria-pressed', i === state.sel);
     b.onclick = () => { state.sel = i; save(); renderEditor(); };
     bar.append(b);
@@ -220,12 +222,12 @@ function renderTrackBar() {
   if (state.tracks.length < MAX_TRACKS) {
     const add = document.createElement('button');
     add.className = 'pill add';
-    add.textContent = '+ Add another sound';
+    add.textContent = tx('+ Add another sound');
     add.onclick = addTrack;
     bar.append(add);
   }
   $('#trackActions').hidden = state.tracks.length < 2;
-  $('#toggleTrack').textContent = cur().on ? 'Mute this sound' : 'Unmute this sound';
+  $('#toggleTrack').textContent = tx(cur().on ? 'Mute this sound' : 'Unmute this sound');
 }
 
 function addTrack() {
@@ -246,7 +248,7 @@ $('#deleteTrack').onclick = () => {
 
 let longHinted = false;
 function changed(full = true) {
-  if (longListen.active && !longHinted) { longHinted = true; toast('Changes will apply next time you start the 30-minute listening.'); }
+  if (longListen.active && !longHinted) { longHinted = true; toast(tx('Changes will apply next time you start the 30-minute listening.')); }
   if (screen === 'editor') refreshAudio();
   save();
   if (full) renderEditor(); else { positionDots(); }
@@ -277,9 +279,9 @@ function positionDots() {
   placeDots($('#padDots'), state.tracks, engine.playing && screen === 'editor');
   const info = $('#freqInfo');
   info.hidden = !state.showFreq;
-  if (state.showFreq) info.textContent = state.tracks.map((t, i) => `Sound ${i + 1}: ${fmtHz(freqOf(t.x))}`).join('  ·  ');
+  if (state.showFreq) info.textContent = state.tracks.map((t, i) => tx('Sound {n}: {f}', { n: i + 1, f: fmtHz(freqOf(t.x)) })).join('  ·  ');
 }
-const fmtHz = f => (f < 1000 ? `${Math.round(f / 5) * 5} Hz` : `${(f / 1000).toFixed(1)} kHz`);
+const fmtHz = f => (f < 1000 ? `${Math.round(f / 5) * 5} Hz` : `${(f / 1000).toFixed(1).replace('.', LANG === 'fr' ? ',' : '.')} kHz`);
 
 // Touch interaction on the spectrum
 const pad = $('#pad');
@@ -308,7 +310,7 @@ pad.addEventListener('pointerdown', e => {
   moveTo(e, r);
   if (!engine.playing && !hinted) {
     hinted = true;
-    toast('Tap “Listen” to hear your changes live.');
+    toast(tx('Tap “Listen” to hear your changes live.'));
     $('#play').classList.add('nudge');
   }
 });
@@ -372,22 +374,22 @@ async function copy(text) {
     try { return document.execCommand('copy'); } catch (err) { return false; }
   }
 }
-$('#copyLink').onclick = async () => toast((await copy($('#shareUrl').value)) ? 'Link copied. Paste it into a message.' : 'Select the link to copy it.');
+$('#copyLink').onclick = async () => toast((await copy($('#shareUrl').value)) ? tx('Link copied. Paste it into a message.') : tx('Select the link to copy it.'));
 $('#nativeShare').onclick = async () => {
   try {
-    await navigator.share({ title: 'My tinnitus', text: 'This is what I hear all the time. Turn the volume down a little before listening.', url: $('#shareUrl').value });
-  } catch (e) { if (e.name !== 'AbortError') toast('Sharing didn’t work. Use “Copy link”.'); }
+    await navigator.share({ title: tx('My tinnitus'), text: tx('This is what I hear all the time. Turn the volume down a little before listening.'), url: $('#shareUrl').value });
+  } catch (e) { if (e.name !== 'AbortError') toast(tx('Sharing didn’t work. Use “Copy link”.')); }
 };
 
 $('#makeWav').onclick = async () => {
   const btn = $('#makeWav');
-  if (!state.tracks.some(t => t.on)) return toast('All sounds are muted. Turn at least one back on.');
-  btn.disabled = true; btn.textContent = 'Creating the file…';
+  if (!state.tracks.some(t => t.on)) return toast(tx('All sounds are muted. Turn at least one back on.'));
+  btn.disabled = true; btn.textContent = tx('Creating the file…');
   try {
     const blob = await renderWav(state.tracks, 15);
     if (wavUrl) URL.revokeObjectURL(wavUrl);
     wavUrl = URL.createObjectURL(blob);
-    wavFile = new File([blob], 'my-tinnitus.wav', { type: 'audio/wav' });
+    wavFile = new File([blob], tx('my-tinnitus.wav'), { type: 'audio/wav' });
     $('#wavDownload').href = wavUrl;
     $('#wavPreview').src = wavUrl;
     $('#wavShare').hidden = !(navigator.canShare && navigator.canShare({ files: [wavFile] }));
@@ -395,13 +397,13 @@ $('#makeWav').onclick = async () => {
     btn.hidden = true;
   } catch (e) {
     console.error(e);
-    toast('Unable to create the file on this device.');
-  } finally { btn.disabled = false; btn.textContent = 'Create the audio file'; }
+    toast(tx('Unable to create the file on this device.'));
+  } finally { btn.disabled = false; btn.textContent = tx('Create the audio file'); }
 };
 $('#wavPreview').addEventListener('play', () => engine.stop());
 $('#wavShare').onclick = async () => {
-  try { await navigator.share({ files: [wavFile], title: 'My tinnitus' }); } catch (e) {
-    if (e.name !== 'AbortError') toast('Sharing didn’t work. Use “Save”.');
+  try { await navigator.share({ files: [wavFile], title: tx('My tinnitus') }); } catch (e) {
+    if (e.name !== 'AbortError') toast(tx('Sharing didn’t work. Use “Save”.'));
   }
 };
 
@@ -412,11 +414,11 @@ function readHash() {
   try { shared = decodeShare(h); } catch (e) {
     shared = null;
     history.replaceState(null, '', location.pathname + location.search);
-    toast('This share link is incomplete or damaged.');
+    toast(tx('This share link is incomplete or damaged.'));
     return false;
   }
   const n = shared.length;
-  $('#sharedInfo').textContent = n > 1 ? `${n} layered sounds` : '';
+  $('#sharedInfo').textContent = n > 1 ? tx('{n} layered sounds', { n }) : '';
   renderDots($('#sharedDots'), shared, -1);
   show('shared');
   return true;
@@ -431,6 +433,7 @@ $('#sharedNew').onclick = () => { clearHash(); show('home'); };
 window.addEventListener('hashchange', () => { engine.stop(); longListen.stop(); if (!readHash() && screen === 'shared') show('home'); });
 
 // ---------- Startup ----------
+localizePage();
 load();
 renderHome();
 if (!readHash()) show('home');

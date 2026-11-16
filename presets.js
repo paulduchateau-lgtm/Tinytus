@@ -41,16 +41,16 @@ export function sanitizeTracks(list) {
 }
 
 export const PRESETS = [
-  { id: 'whistle', art: 'whistle', name: 'High whistle', desc: 'A thin, high, steady tone.',
+  { id: 'whistle', art: 'whistle', fr: ['Sifflement aigu', 'Un son fin, aigu et continu.'], name: 'High whistle', desc: 'A thin, high, steady tone.',
     tracks: [{ x: 0.84, y: 0.04, level: 0.3 }] },
-  { id: 'buzz', art: 'buzz', name: 'Humming', desc: 'A low sound, like a small motor.',
+  { id: 'buzz', art: 'buzz', fr: ['Bourdonnement', 'Un son grave, comme un petit moteur.'], name: 'Humming', desc: 'A low sound, like a small motor.',
     tracks: [{ x: 0.1, y: 0.12, level: 0.4, wave: 'sawtooth', grain: 0.1 }] },
-  { id: 'hiss', art: 'hiss', name: 'Hissing', desc: 'Like rushing air or radio static.',
+  { id: 'hiss', art: 'hiss', fr: ['Souffle', 'Un bruit d’air ou de radio.'], name: 'Hissing', desc: 'Like rushing air or radio static.',
     tracks: [{ x: 0.72, y: 0.96, level: 0.32 }] },
-  { id: 'crackle', art: 'crackle', name: 'Crackling', desc: 'A grainy, electric sound.',
+  { id: 'crackle', art: 'crackle', fr: ['Grésillement', 'Un son granuleux et électrique.'], name: 'Crackling', desc: 'A grainy, electric sound.',
     tracks: [{ x: 0.66, y: 0.62, level: 0.36, grain: 0.85, wave: 'triangle' }] },
-  { id: 'pulse', art: 'pulse', name: 'Pulsing', desc: 'A sound that beats steadily.',
+  { id: 'pulse', art: 'pulse', fr: ['Pulsation', 'Un son qui bat régulièrement.'], name: 'Pulsing', desc: 'A sound that beats steadily.',
     tracks: [{ x: 0.36, y: 0.22, level: 0.38, beat: 0.9, rate: 0.27 }] },
-  { id: 'multi', art: 'multi', name: 'Several sounds', desc: 'Two different tones layered together.',
+  { id: 'multi', art: 'multi', fr: ['Plusieurs sons', 'Deux tonalités différentes superposées.'], name: 'Several sounds', desc: 'Two different tones layered together.',
     tracks: [{ x: 0.76, y: 0.04, level: 0.28 }, { x: 0.88, y: 0.1, level: 0.24 }] },
 ];

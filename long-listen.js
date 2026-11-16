@@ -6,6 +6,7 @@
 // audio element leaves a tiny gap. If service workers are unavailable, the loop is played
 // with `audio.loop` as a fallback.
 import { renderLoop, encodeWav } from './export.js';
+import { tx } from './i18n.js';
 
 const CACHE = 'tinnitus-long';
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
@@ -108,7 +109,7 @@ function fade(from, to, done) {
 function session(ctrl) {
   if (!('mediaSession' in navigator)) return;
   try {
-    navigator.mediaSession.metadata = new MediaMetadata({ title: 'My tinnitus', artist: 'Tinnitus Studio', artwork: [{ src: 'icon.svg', sizes: '512x512', type: 'image/svg+xml' }] });
+    navigator.mediaSession.metadata = new MediaMetadata({ title: tx('My tinnitus'), artist: 'Tinnitus Studio', artwork: [{ src: 'icon.svg', sizes: '512x512', type: 'image/svg+xml' }] });
     navigator.mediaSession.playbackState = 'playing';
     for (const a of ['pause', 'stop']) navigator.mediaSession.setActionHandler(a, () => ctrl.stop());
   } catch (e) { /* optional API */ }

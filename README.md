@@ -5,6 +5,8 @@ It is 100% static: no server, no account, no dependencies. Everything stays on t
 
 > This is not a medical tool: it does not diagnose or treat anything. The preset sounds are synthetic starting points, not clinical references.
 
+The interface is in English, and switches to French automatically when the phone or browser's preferred language is French.
+
 ## User flow
 
 1. **What does your tinnitus sound like?** Six starting sounds, each playable with a single tap (or "Start from scratch").
@@ -24,6 +26,7 @@ It is 100% static: no server, no account, no dependencies. Everything stays on t
 | `long-listen.js` | 30-minute listening that keeps playing with the screen locked |
 | `sw.js` | Service worker that streams the 30-minute listening as one continuous file |
 | `app.js` | User interface |
+| `i18n.js` | English / French texts (French when the phone or browser prefers French) |
 
 The WAV export uses exactly the same `createVoice()` function as live playback.
 
