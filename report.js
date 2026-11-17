@@ -1,7 +1,7 @@
 // Printable report ("Save as PDF" from the browser's print dialog): a description of the
 // composition that a person can keep or give to their doctor. Built from the same
 // parameters as the sound. No library: the print stylesheet hides the app and shows #report.
-import { freqOf, rateOf, buzzRateOf, F_MIN, F_MAX } from './audio-engine.js';
+import { freqOf, rateOf, buzzRateOf, BELL, F_MIN, F_MAX } from './audio-engine.js';
 import { LANG, tx } from './i18n.js';
 
 const COLORS = ['#e8702e', '#d6406e', '#8457c9', '#1f9a85']; // print-safe track colours
@@ -15,10 +15,63 @@ function bandwidth(t) {
   return freqOf(t.x) / Q;
 }
 
-function describe(t, i) {
+/** Frequency actually played: in the buzzing shape the pitch is locked to whole cycles per click. */
+export function fundamental(t) {
   const f = freqOf(t.x);
+  if (t.shape !== 'buzz' || t.beat < 0.05) return f;
+  const r = buzzRateOf(t.rate);
+  return Math.max(1, Math.round(f / r)) * r;
+}
+
+/** Nearest note in scientific pitch notation (A4 = 440 Hz) and the deviation in cents. */
+function note(f) {
+  const m = 69 + 12 * Math.log2(f / 440), n = Math.round(m), cents = Math.round((m - n) * 100);
+  const name = ['C', 'C♯', 'D', 'D♯', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'A♯', 'B'][((n % 12) + 12) % 12] + (Math.floor(n / 12) - 1);
+  return `${name} ${cents >= 0 ? '+' : '−'}${Math.abs(cents)} cents`;
+}
+
+// Same low-pass as the synthesis engine for the Round / Rich timbres: 2nd order, cutoff 7 × f.
+// Web Audio expresses a low-pass Q in dB: the engine's 0.3 dB is a linear Q of 10^(0.3/20) ≈ 1.035.
+const LP_Q = Math.pow(10, 0.3 / 20);
+const lowpass = r => 1 / Math.sqrt((1 - r * r) ** 2 + (r / LP_Q) ** 2);
+
+/**
+ * Overtones present in the tonal part, relative to the fundamental (dB), up to 20 kHz and down to −40 dB.
+ * Soft: none. Round (triangle): odd harmonics, 1/n². Rich (sawtooth): all harmonics, 1/n.
+ * Bell: inharmonic partials of the engine's bell model.
+ */
+export function overtones(t, f) {
+  const out = [];
+  const push = (ratio, amp) => {
+    const hz = f * ratio, db = 20 * Math.log10(amp);
+    if (hz <= F_MAX && db >= -40) out.push({ ratio, hz, db });
+  };
+  if (t.wave === 'bell') for (const [ratio, amp] of BELL.slice(1)) push(ratio, amp);
+  else if (t.wave === 'triangle' || t.wave === 'sawtooth') {
+    const odd = t.wave === 'triangle';
+    for (let n = 2; n <= 24 && out.length < 8; n++) {
+      if (odd && n % 2 === 0) continue;
+      push(n, ((odd ? 1 / (n * n) : 1 / n) * lowpass(n / 7)) / lowpass(1 / 7));
+    }
+  }
+  return out;
+}
+
+function describe(t, i) {
+  const f = fundamental(t);
   const rows = [];
-  rows.push([tx('Frequency'), `<strong>${num(Math.round(f))} Hz</strong>`]);
+  rows.push([tx('Fundamental frequency'), `<span class="r-fund">${num(Math.round(f))} Hz</span> <span class="r-muted">· ${tx('nearest note')} ${note(f)}</span>`]);
+  const ov = overtones(t, f);
+  let harm;
+  if (t.wave === 'sine') harm = tx('None: pure sine tone, the fundamental alone.');
+  else if (!ov.length) harm = tx('None within the hearing range.');
+  else {
+    const head = t.wave === 'bell' ? tx('Inharmonic partials (not whole multiples of the fundamental)') : t.wave === 'triangle' ? tx('Odd harmonics') : tx('All harmonics');
+    harm = `${head}<table class="r-harm"><tr><th>${tx('Rank')}</th><th>${tx('Frequency')}</th><th>${tx('Level vs fundamental')}</th></tr>`
+      + ov.map(o => `<tr><td>${t.wave === 'bell' ? '× ' + num(o.ratio, 1) : o.ratio}</td><td>${num(Math.round(o.hz))} Hz</td><td>${o.db >= 0 ? '' : '−'}${num(Math.abs(o.db), 1)} dB</td></tr>`).join('') + '</table>';
+  }
+  if (t.shape === 'buzz' && t.beat >= 0.05) harm += `<p class="r-muted r-small">${tx('The regular buzzing adds side lines every {r} Hz around the fundamental.', { r: num(Math.round(buzzRateOf(t.rate))) })}</p>`;
+  rows.push([t.wave === 'bell' ? tx('Partials') : tx('Harmonics'), harm]);
   const kind = t.y < 0.15 ? tx('Pure tone (tonal)') : t.y < 0.5 ? tx('Slightly diffuse tone') : tx('Diffuse sound, close to a noise');
   let character = `${kind} — ${tx('diffusion')} ${pct(t.y)}`;
   if (t.y >= 0.05) character += `<br><span class="r-muted">${tx('Noise band about {bw} Hz wide around {f} Hz', { bw: num(Math.round(bandwidth(t))), f: num(Math.round(f)) })}</span>`;
@@ -43,17 +96,27 @@ function describe(t, i) {
 
 /** Frequency chart on a logarithmic axis covering the hearing range. */
 function chart(tracks) {
-  const W = 680, H = 92, L = 20, R = 20, X = f => L + (W - L - R) * Math.log(f / F_MIN) / Math.log(F_MAX / F_MIN);
+  const W = 680, L = 20, R = 20, X = f => L + (W - L - R) * Math.log(f / F_MIN) / Math.log(F_MAX / F_MIN);
+  // Labels never overlap: each goes on the first line where it has 130 px of room.
+  const lines = [], lineOf = [];
+  [...tracks.keys()].sort((a, b) => fundamental(tracks[a]) - fundamental(tracks[b])).forEach(i => {
+    const x = X(fundamental(tracks[i]));
+    let k = lines.findIndex(last => x - last > 130);
+    if (k < 0) { k = lines.length; lines.push(x); } else lines[k] = x;
+    lineOf[i] = k;
+  });
+  const TOP = 14 * lines.length + 6, AXIS = TOP + 20, H = AXIS + 36;
   const ticks = [20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000];
   const lbl = f => (f >= 1000 ? num(f / 1000) + ' k' : num(f));
   let s = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${esc(tx('Frequencies on the hearing range'))}">`;
-  s += `<line x1="${L}" x2="${W - R}" y1="56" y2="56" stroke="#999" stroke-width="1"/>`;
-  for (const f of ticks) s += `<line x1="${X(f)}" x2="${X(f)}" y1="52" y2="60" stroke="#999"/><text x="${X(f)}" y="76" font-size="11" text-anchor="middle" fill="#555">${lbl(f)}</text>`;
-  s += `<text x="${W - R}" y="90" font-size="10" text-anchor="end" fill="#777">Hz</text>`;
+  s += `<line x1="${L}" x2="${W - R}" y1="${AXIS}" y2="${AXIS}" stroke="#999" stroke-width="1"/>`;
+  for (const f of ticks) s += `<line x1="${X(f)}" x2="${X(f)}" y1="${AXIS - 4}" y2="${AXIS + 4}" stroke="#999"/><text x="${X(f)}" y="${AXIS + 20}" font-size="11" text-anchor="middle" fill="#555">${lbl(f)}</text>`;
+  s += `<text x="${W - R}" y="${AXIS + 34}" font-size="10" text-anchor="end" fill="#777">Hz</text>`;
   tracks.forEach((t, i) => {
-    const x = X(freqOf(t.x)), half = t.y >= 0.05 ? Math.max(2, (X(freqOf(t.x) + bandwidth(t) / 2) - X(Math.max(F_MIN, freqOf(t.x) - bandwidth(t) / 2))) / 2) : 0;
-    if (half) s += `<rect x="${x - half}" y="47" width="${half * 2}" height="18" rx="4" fill="${COLORS[i]}" opacity=".25"/>`;
-    s += `<circle cx="${x}" cy="56" r="7" fill="${COLORS[i]}" ${t.on ? '' : 'fill-opacity=".35"'}/><text x="${x}" y="${30 - (i % 2) * 14}" font-size="11" text-anchor="middle" fill="#222">${tx('Sound {n}', { n: i + 1 })} · ${num(Math.round(freqOf(t.x)))} Hz</text>`;
+    for (const o of overtones(t, fundamental(t))) s += `<line x1="${X(o.hz)}" x2="${X(o.hz)}" y1="${AXIS - Math.max(3, 9 + o.db / 5)}" y2="${AXIS + Math.max(3, 9 + o.db / 5)}" stroke="${COLORS[i]}" stroke-width="2" opacity=".7"/>`;
+    const x = X(fundamental(t)), half = t.y >= 0.05 ? Math.max(2, (X(freqOf(t.x) + bandwidth(t) / 2) - X(Math.max(F_MIN, freqOf(t.x) - bandwidth(t) / 2))) / 2) : 0;
+    if (half) s += `<rect x="${x - half}" y="${AXIS - 9}" width="${half * 2}" height="18" rx="4" fill="${COLORS[i]}" opacity=".25"/>`;
+    s += `<circle cx="${x}" cy="${AXIS}" r="7" fill="${COLORS[i]}" ${t.on ? '' : 'fill-opacity=".35"'}/><text x="${x}" y="${TOP - 14 * lineOf[i]}" font-size="11" text-anchor="middle" fill="#222">${tx('Sound {n}', { n: i + 1 })} · ${num(Math.round(fundamental(t)))} Hz</text>`;
   });
   return s + '</svg>';
 }
@@ -68,8 +131,13 @@ export function buildReport(tracks, { code, url }) {
       <p class="r-muted">${tx('Created on {d}', { d: date })} · ${n > 1 ? tx('{n} layered sounds', { n }) : tx('1 sound')}</p>
     </header>
     <p class="r-intro">${tx('This report describes the sound I recreated to match my tinnitus. It is a subjective reproduction made by ear, not a medical measurement.')}</p>
+    <div class="r-summary">
+      <p class="r-summary-title">${tx('Fundamental frequencies')}</p>
+      ${tracks.map((t, i) => `<p><i style="background:${COLORS[i]}"></i>${tx('Sound {n}', { n: i + 1 })} <strong>${num(Math.round(fundamental(t)))} Hz</strong> <span class="r-muted">${note(fundamental(t))}</span></p>`).join('')}
+    </div>
     <h2>${tx('Frequencies on the hearing range')}</h2>
     ${chart(tracks)}
+    <p class="r-muted r-small">${tx('Dots: fundamental frequencies. Small marks: harmonics or partials. Shaded band: noise component.')}</p>
     <h2>${tx('Details')}</h2>
     ${tracks.map(describe).join('')}
     <section class="r-keep">
