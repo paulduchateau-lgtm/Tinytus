@@ -174,6 +174,7 @@ const FR = {
   'A 15-second audio file': 'Un fichier audio de 15 secondes', 'PDF to save or print': 'PDF à enregistrer ou imprimer',
   'Not measured yet': 'Pas encore mesuré',
   'Not reached at the maximum · {d}': 'Non atteint au maximum · {d}', '{v} above threshold · {d}': '{v} au-dessus du seuil · {d}',
+  'Contact': 'Contact',
   // Dynamic texts
   'Sound {n}': 'Son {n}',
   'Sound {n}: {f}': 'Son {n} : {f}',

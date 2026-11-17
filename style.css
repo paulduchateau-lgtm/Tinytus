@@ -559,3 +559,4 @@ a.tt-btn { color: inherit; }
    which made the sheet open at the top of the page instead of over the current scroll position). */
 dialog.tt-dialog { position: fixed; inset: 0; max-height: 92vh; max-height: 92dvh; overscroll-behavior: contain; }
 @media (max-width: 600px) { dialog.tt-dialog { margin: auto 0 0; } }
+.foot-contact { display: block; width: max-content; margin: 10px auto 0; padding: 6px 10px; color: var(--link); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--link-underline); }
