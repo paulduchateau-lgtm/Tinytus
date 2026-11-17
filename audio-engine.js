@@ -44,10 +44,23 @@ function buffers(ctx) {
     }
     prev = v;
   }
-  b = { noise, grain, m1: m1 / len, m2: m2 / len };
+  // Chirp envelope (crickets): one cycle lasts 1 s at playbackRate 1, so playbackRate = chirps per second.
+  // The first 32% holds 4 smooth pulses (sin²), the rest is silent; it starts and ends at 0 to loop cleanly.
+  const clen = sr, chirp = ctx.createBuffer(1, clen, sr), c = chirp.getChannelData(0);
+  const on = Math.floor(clen * 0.32), PULSES = 4;
+  let c1 = 0, c2 = 0;
+  for (let j = 0; j < clen; j++) {
+    const v = j < on ? Math.sin(Math.PI * ((j / on) * PULSES % 1)) ** 2 : 0;
+    c[j] = v; c1 += v; c2 += v * v;
+  }
+  b = { noise, grain, m1: m1 / len, m2: m2 / len, chirp, c1: c1 / clen, c2: c2 / clen };
   cache.set(ctx, b);
   return b;
 }
+
+// Bell timbre: inharmonic partials (ratio to the pitch, relative amplitude), played continuously.
+export const BELL = [[1, 1], [2.0, 0.5], [2.4, 0.42], [3.0, 0.28], [4.2, 0.2], [5.4, 0.12]];
+const BELL_NORM = 1 / Math.sqrt(BELL.reduce((s, [, a]) => s + a * a, 0)); // same loudness as one sine
 
 /** Internal parameters of a track. Pure function: easy to test. */
 export function voiceParams(t, sr, B) {
@@ -60,15 +73,22 @@ export function voiceParams(t, sr, B) {
   const noiseComp = clamp(1.225 / Math.sqrt(bw / (sr / 2)), 0.5, 40);
   const g = clamp(t.grain), d = clamp(t.beat), lvl = clamp(t.level);
   const grainComp = 1 / Math.sqrt((1 - g) ** 2 + 2 * g * (1 - g) * B.m1 + g * g * B.m2);
-  const beatComp = 1 / Math.sqrt((1 - d / 2) ** 2 + d * d / 8);
+  const chirp = t.shape === 'chirp';
+  // Envelope = base + depth · modulator. Smooth: sine in [-1, 1]. Chirp: pulses in [0, 1].
+  const beatComp = chirp ? 1 / Math.sqrt((1 - d) ** 2 + 2 * d * (1 - d) * B.c1 + d * d * B.c2)
+                         : 1 / Math.sqrt((1 - d / 2) ** 2 + d * d / 8);
+  const bell = t.wave === 'bell';
   return {
     f, Q,
-    wave: t.wave,
-    lp: t.wave === 'sine' ? sr * 0.45 : Math.min(f * 7, sr * 0.45),
+    type: bell ? 'sine' : t.wave,
+    bell,
+    lp: t.wave === 'sine' || bell ? sr * 0.45 : Math.min(f * 7, sr * 0.45),
     tone: Math.pow(1 - y, 1.3),
     noise: Math.pow(y, 0.8) * noiseComp * 0.8,
     grainBase: 1 - g, grainDepth: g,
-    beatBase: 1 - d / 2, beatDepth: d / 2,
+    beatBase: chirp ? 1 - d : 1 - d / 2,
+    beatDepth: chirp ? 0 : d / 2,
+    chirpDepth: chirp ? d : 0,
     rate: rateOf(t.rate),
     gain: t.on ? MAX_GAIN * lvl * lvl * Math.min(2.5, grainComp * beatComp) : 0,
     pan: t.ear === 'L' ? -1 : t.ear === 'R' ? 1 : 0,
@@ -97,14 +117,20 @@ export function createVoice(ctx, out, track, { fadeIn = 0.08, period = 0 } = {})
   const beatVca = ctx.createGain();
   const lfo = ctx.createOscillator();
   const lfoDepth = ctx.createGain();
+  const chirpSrc = ctx.createBufferSource(); chirpSrc.buffer = B.chirp; chirpSrc.loop = true;
+  const chirpDepth = ctx.createGain(); chirpDepth.gain.value = 0;
+  const oscG = ctx.createGain();
+  // Bell partials (silent unless the Bell timbre is selected); the first partial is `osc` itself.
+  const partials = BELL.slice(1).map(() => { const o = ctx.createOscillator(), g = ctx.createGain(); g.gain.value = 0; o.connect(g).connect(lp); return { o, g }; });
   const level = ctx.createGain(); level.gain.value = 0;
   const pan = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
 
-  osc.connect(lp).connect(tone).connect(grainVca);
+  osc.connect(oscG).connect(lp).connect(tone).connect(grainVca);
   noise.connect(bp).connect(noiseG).connect(grainVca);
   grainSrc.connect(grainDepth).connect(grainVca.gain);
   grainVca.connect(beatVca);
   lfo.connect(lfoDepth).connect(beatVca.gain);
+  chirpSrc.connect(chirpDepth).connect(beatVca.gain);
   beatVca.connect(level);
   if (pan) level.connect(pan).connect(out); else level.connect(out);
 
@@ -118,18 +144,23 @@ export function createVoice(ctx, out, track, { fadeIn = 0.08, period = 0 } = {})
 
   function update(tr, now = false) {
     const p = voiceParams(tr, sr, B), t = ctx.currentTime;
-    if (period) {
-      p.f = Math.max(1, Math.round(p.f * period)) / period;
-      p.rate = Math.max(1, Math.round(p.rate * period)) / period;
-    }
-    if (osc.type !== p.wave) {
-      if (now || last.tone === undefined) osc.type = p.wave;
+    const q = v => (period ? Math.max(1, Math.round(v * period)) / period : v);
+    p.f = q(p.f);
+    p.rate = q(p.rate);
+    if (osc.type !== p.type) {
+      if (now || last.tone === undefined) osc.type = p.type;
       else { // timbre change: duck briefly to avoid a click
         tone.gain.setTargetAtTime(0, t, 0.008);
-        setTimeout(() => { osc.type = p.wave; tone.gain.setTargetAtTime(last.tone, ctx.currentTime, 0.015); }, 50);
+        setTimeout(() => { osc.type = p.type; tone.gain.setTargetAtTime(last.tone, ctx.currentTime, 0.015); }, 50);
       }
     }
     set('f', osc.frequency, p.f, t, now);
+    set('og', oscG.gain, p.bell ? BELL_NORM : 1, t, now);
+    partials.forEach(({ o, g }, k) => {
+      const [ratio, amp] = BELL[k + 1], pf = q(p.f * ratio), audible = p.bell && pf < sr * 0.45;
+      set('pf' + k, o.frequency, Math.min(pf, sr * 0.45), t, now);
+      set('pg' + k, g.gain, audible ? amp * BELL_NORM : 0, t, now);
+    });
     set('bf', bp.frequency, p.f, t, now);
     set('q', bp.Q, p.Q, t, now);
     set('lp', lp.frequency, p.lp, t, now);
@@ -140,20 +171,23 @@ export function createVoice(ctx, out, track, { fadeIn = 0.08, period = 0 } = {})
     set('bb', beatVca.gain, p.beatBase, t, now);
     set('bd', lfoDepth.gain, p.beatDepth, t, now);
     set('r', lfo.frequency, p.rate, t, now);
+    set('cd', chirpDepth.gain, p.chirpDepth, t, now);
+    set('cr', chirpSrc.playbackRate, p.rate, t, now);
     if (pan) set('pan', pan.pan, p.pan, t, now);
     if (last.gain !== undefined && last.gain !== p.gain) level.gain.setTargetAtTime(p.gain, t, 0.04);
     last.gain = p.gain;
   }
 
   update(track, true);
-  const t0 = ctx.currentTime, sources = [osc, noise, grainSrc, lfo];
+  const t0 = ctx.currentTime, sources = [osc, noise, grainSrc, lfo, chirpSrc, ...partials.map(x => x.o)];
   if (fadeIn > 0) {
     level.gain.setValueAtTime(0, t0);
     level.gain.linearRampToValueAtTime(last.gain, t0 + fadeIn);
   } else level.gain.setValueAtTime(last.gain, t0);
   // Different offsets per track: two tracks never share the same noise.
   const off = (track.id * 0.7371) % 3;
-  osc.start(t0); lfo.start(t0);
+  osc.start(t0); lfo.start(t0); chirpSrc.start(t0);
+  for (const { o } of partials) o.start(t0);
   noise.start(t0, off); grainSrc.start(t0, (off * 1.37) % 3);
 
   return {
@@ -163,7 +197,7 @@ export function createVoice(ctx, out, track, { fadeIn = 0.08, period = 0 } = {})
       hold(level.gain, t);
       level.gain.setTargetAtTime(0, t, fade / 4);
       for (const s of sources) s.stop(t + fade + 0.05);
-      osc.onended = () => { for (const n of [...sources, lp, tone, bp, noiseG, grainVca, grainDepth, beatVca, lfoDepth, level, pan]) n && n.disconnect(); };
+      osc.onended = () => { for (const n of [...sources, ...partials.map(x => x.g), oscG, lp, tone, bp, noiseG, grainVca, grainDepth, beatVca, lfoDepth, chirpDepth, level, pan]) n && n.disconnect(); };
     },
   };
 }

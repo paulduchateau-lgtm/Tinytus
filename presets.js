@@ -2,7 +2,8 @@
 // Presets are plausible synthetic starting points, not medical references.
 
 export const MAX_TRACKS = 4;
-export const WAVES = ['sine', 'triangle', 'sawtooth'];
+export const WAVES = ['sine', 'triangle', 'sawtooth', 'bell'];
+export const SHAPES = ['smooth', 'chirp']; // pulse shape: gentle sine, or cricket-like chirps
 export const EARS = ['B', 'L', 'R'];
 
 const DEFAULTS = {
@@ -15,6 +16,7 @@ const DEFAULTS = {
   width: 0.5,  // sound width
   ear: 'B',
   wave: 'sine',
+  shape: 'smooth',
   on: true,
 };
 
@@ -28,6 +30,7 @@ export function sanitizeTrack(p) {
   for (const k of ['x', 'y', 'level', 'beat', 'grain', 'rate', 'width']) t[k] = num(o[k], DEFAULTS[k]);
   t.ear = EARS.includes(o.ear) ? o.ear : 'B';
   t.wave = WAVES.includes(o.wave) ? o.wave : 'sine';
+  t.shape = SHAPES.includes(o.shape) ? o.shape : 'smooth';
   t.on = o.on !== false;
   return t;
 }
@@ -53,4 +56,10 @@ export const PRESETS = [
     tracks: [{ x: 0.36, y: 0.22, level: 0.38, beat: 0.9, rate: 0.27 }] },
   { id: 'multi', art: 'multi', fr: ['Plusieurs sons', 'Deux tonalités différentes superposées.'], name: 'Several sounds', desc: 'Two different tones layered together.',
     tracks: [{ x: 0.76, y: 0.04, level: 0.28 }, { x: 0.88, y: 0.1, level: 0.24 }] },
+  { id: 'crickets', art: 'crickets', fr: ['Grillons', 'Des « cri-cri » aigus et réguliers.'], name: 'Crickets', desc: 'High, regular chirping.',
+    tracks: [{ x: 0.8, y: 0.04, level: 0.32, beat: 1, shape: 'chirp', rate: 0.53 }] },
+  { id: 'cicadas', art: 'cicadas', fr: ['Cigales', 'Un bourdonnement aigu d’été, qui grésille.'], name: 'Cicadas', desc: 'A high, buzzing summer drone.',
+    tracks: [{ x: 0.83, y: 0.72, level: 0.36, grain: 0.9, width: 0.7 }] },
+  { id: 'bell', art: 'bell', fr: ['Cloche', 'Un tintement métallique qui ne s’arrête pas.'], name: 'Bell', desc: 'A metallic tone that keeps ringing.',
+    tracks: [{ x: 0.58, y: 0.03, level: 0.28, wave: 'bell', beat: 0.12, rate: 0.05 }] },
 ];

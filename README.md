@@ -13,8 +13,8 @@ The look follows the **tinytus design system**: a warm "Day" theme by default (c
 
 ## User flow
 
-1. **What does your tinnitus sound like?** Six starting sounds, each playable with a single tap (or "Start from scratch").
-2. **Fine-tune your sound**. A colour spectrum: horizontally lower ↔ higher, vertically pure ↔ diffuse. Three secondary controls: Loudness, Pulse, Grain. Up to 4 layered sounds. The "More settings" panel holds the ear, tone, pulse speed, sound width and the option to show frequencies.
+1. **What does your tinnitus sound like?** Nine starting sounds (whistle, humming, hissing, crackling, pulsing, several sounds, crickets, cicadas, bell), each playable with a single tap (or "Start from scratch").
+2. **Fine-tune your sound**. A colour spectrum: horizontally lower ↔ higher, vertically pure ↔ diffuse. Three secondary controls: Loudness, Pulse, Grain. Up to 4 layered sounds. The "More settings" panel holds the ear, tone, pulse speed, sound width and the option to show frequencies. "More settings" adds ear, tone (Soft, Round, Rich, or Bell: inharmonic partials ringing continuously), pulse shape (Gentle, or Chirping for cricket-like chirps), pulse speed and width.
 3. **Share my tinnitus**. A link that contains the whole composition (in the `#s=…` fragment), or a 15-second WAV file generated locally.
 
 ## Files
@@ -38,7 +38,7 @@ The WAV export uses exactly the same `createVoice()` function as live playback.
 
 ### Link format (v1)
 
-`#s=` followed by the composition encoded in base64url: one version byte, the track count, then 9 bytes per track (pitch on 16 bits, then purity, loudness, pulse, grain, speed, width, and flags for on/off, ear and tone), and finally a checksum. A 4-track link is about 55 characters. On opening, the version, length, checksum and values are all validated. A damaged link returns to the home screen with a message.
+`#s=` followed by the composition encoded in base64url: one version byte, the track count, then 9 bytes per track (pitch on 16 bits, then purity, loudness, pulse, grain, speed, width, and flags for on/off, ear, tone and pulse shape), and finally a checksum. A 4-track link is about 55 characters. On opening, the version, length, checksum and values are all validated. A damaged link returns to the home screen with a message.
 
 ## 30-minute listening
 

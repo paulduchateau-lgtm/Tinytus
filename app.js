@@ -152,6 +152,9 @@ function art(kind) {
     case 'crackle': return svg(`<path d="${path(70, () => (r() < 0.35 ? 0 : (r() * 2 - 1) * 18))}" ${sw} stroke-width="1.6"/>`);
     case 'pulse': return svg(`<path d="${path(300, t => 14 * Math.pow(Math.abs(Math.sin(t * Math.PI * 3)), 2) * Math.sin(t * 2 * Math.PI * 22))}" ${sw} stroke-width="1.8"/>`);
     case 'multi': return svg(`<path d="${path(240, t => 10 * Math.sin(t * 2 * Math.PI * 4))}" ${sw} stroke-width="2.4" opacity=".9"/><path d="${path(240, t => 6 * Math.sin(t * 2 * Math.PI * 11 + 1))}" stroke="currentColor" fill="none" stroke-width="1.3" opacity=".55"/>`);
+    case 'crickets': return svg(`<path d="${path(360, t => { const c = (t * 3) % 1; return c < 0.34 ? 13 * Math.sin(Math.PI * c / 0.34) ** 2 * Math.sin(t * 2 * Math.PI * 60) : 0; })}" ${sw} stroke-width="1.5"/>`);
+    case 'cicadas': return svg(`<path d="${path(300, t => (7 + 7 * r()) * Math.sin(t * 2 * Math.PI * 34))}" ${sw} stroke-width="1.3"/>`);
+    case 'bell': return svg(`<path d="${path(300, t => 7 * Math.sin(t * 2 * Math.PI * 4) + 4.5 * Math.sin(t * 2 * Math.PI * 9.6 + 1) + 2.5 * Math.sin(t * 2 * Math.PI * 21.6 + 2))}" ${sw} stroke-width="1.9"/>`);
   }
   return '';
 }
@@ -337,7 +340,7 @@ for (const k of ['level', 'beat', 'grain', 'rate', 'width']) {
   const el = $('#' + k);
   el.addEventListener('input', () => { cur()[k] = +el.value; fill(el); changed(false); });
 }
-for (const [id, key] of [['ear', 'ear'], ['wave', 'wave']]) {
+for (const [id, key] of [['ear', 'ear'], ['wave', 'wave'], ['shape', 'shape']]) {
   $('#' + id).addEventListener('click', e => {
     const v = e.target.closest('button')?.dataset.v;
     if (v) { cur()[key] = v; changed(); }
@@ -350,6 +353,7 @@ function renderControls() {
   for (const k of ['level', 'beat', 'grain', 'rate', 'width']) { const el = $('#' + k); el.value = t[k]; fill(el); }
   for (const b of $$('#ear button')) b.classList.toggle('on', b.dataset.v === t.ear);
   for (const b of $$('#wave button')) b.classList.toggle('on', b.dataset.v === t.wave);
+  for (const b of $$('#shape button')) b.classList.toggle('on', b.dataset.v === t.shape);
   $('#showFreq').checked = state.showFreq;
   document.documentElement.style.setProperty('--accent', COLORS[state.sel]);
 }

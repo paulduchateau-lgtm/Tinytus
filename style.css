@@ -452,3 +452,10 @@ a.tt-btn { color: inherit; }
   -webkit-mask-image: linear-gradient(to bottom, transparent 45%, #000 95%);
   mask-image: linear-gradient(to bottom, transparent 45%, #000 95%);
 }
+
+/* Narrow phones: icon above the label for Loop / Share, so longer words (e.g. French) never truncate. */
+@media (max-width: 440px) {
+  .tt-tabbar { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr); }
+  .tt-tab:not(.tt-tab--listen) { flex-direction: column; gap: 2px; padding: 0 4px; font-size: 13px; }
+  .tt-tab:not(.tt-tab--listen) svg { width: 19px; height: 19px; }
+}
