@@ -554,3 +554,8 @@ a.tt-btn { color: inherit; }
 .share-row:disabled { opacity: .6; }
 .wav-ready { padding: 0 16px 14px; }
 @media (max-width: 380px) { .share-code-label { display: none; } }
+
+/* Native modal dialogs stay fixed on the viewport (the design system's .tt-dialog sets position: relative,
+   which made the sheet open at the top of the page instead of over the current scroll position). */
+dialog.tt-dialog { position: fixed; inset: 0; max-height: 92vh; max-height: 92dvh; overscroll-behavior: contain; }
+@media (max-width: 600px) { dialog.tt-dialog { margin: auto 0 0; } }
