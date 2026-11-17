@@ -64,7 +64,7 @@ const FR = {
   'Sound actions': 'Actions sur le son',
   'tinytus helps others hear what you perceive. It is not a medical tool: it does not diagnose or treat anything. Everything stays on your device.':
     'tinytus aide à faire entendre ce que vous percevez. Ce n’est pas un outil médical\u00a0: il ne diagnostique ni ne soigne. Tout reste sur votre appareil.',
-  'I have a code': 'J’ai un code',
+  'I have a code: paste it here': 'J’ai un code : collez-le ici',
   'Paste or type the code': 'Collez ou tapez le code',
   'Sound code': 'Code du son',
   'Open': 'Ouvrir',

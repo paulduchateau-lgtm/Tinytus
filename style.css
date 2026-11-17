@@ -472,9 +472,8 @@ a.tt-btn { color: inherit; }
 
 /* Sound code entry (home and editor) */
 .code-entry { text-align: center; }
-.code-entry summary { list-style: none; display: inline-block; cursor: pointer; margin-top: 4px; }
-.code-entry summary::-webkit-details-marker { display: none; }
 .code-form { display: flex; gap: 8px; max-width: 460px; margin: 8px auto 0; }
+.code-entry .code-form { margin-top: 14px; }
 .code-form .tt-input { margin: 0; flex: 1; font-size: 16px; }
 .code-form .tt-btn { width: auto; min-height: 46px; padding: 0 18px; }
 .tt-more-body .code-form { margin: 6px 0 8px; }
