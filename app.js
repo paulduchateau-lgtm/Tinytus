@@ -403,7 +403,7 @@ $('#play').onclick = () => (engine.playing ? engine.stop() : play(state.tracks))
 // ---------- Sharing ----------
 const dialog = $('#shareDialog');
 let wavUrl = null, wavFile = null;
-const shareLink = () => location.href.split('#')[0] + '#' + encodeShare(state.tracks);
+const shareLink = () => location.origin + location.pathname + '#' + encodeShare(state.tracks); // no ?query (e.g. fbclid)
 
 const shareCode = () => encodeShare(state.tracks).replace(/^s=/, '');
 
@@ -412,7 +412,8 @@ $('#share').onclick = () => {
   $('#shareUrl').value = shareLink();
   $('#shareCode').value = shareCode();
   $('#nativeShare').hidden = !navigator.share;
-  $('#makeWav').hidden = false;
+  $('#copyLink').classList.toggle('tt-btn--primary', !navigator.share);
+  $('#copyLink').classList.toggle('tt-btn--secondary', !!navigator.share);
   $('#wavReady').hidden = true;
   dialog.showModal();
 };
@@ -435,7 +436,9 @@ $('#nativeShare').onclick = async () => {
 $('#makeWav').onclick = async () => {
   const btn = $('#makeWav');
   if (!state.tracks.some(t => t.on)) return toast(tx('All sounds are muted. Turn at least one back on.'));
-  btn.disabled = true; btn.textContent = tx('Creating the file…');
+  if (!$('#wavReady').hidden) return;
+  const title = btn.querySelector('.row-title');
+  btn.disabled = true; title.textContent = tx('Creating the file…');
   try {
     const blob = await renderWav(state.tracks, 15);
     if (wavUrl) URL.revokeObjectURL(wavUrl);
@@ -445,11 +448,10 @@ $('#makeWav').onclick = async () => {
     $('#wavPreview').src = wavUrl;
     $('#wavShare').hidden = !(navigator.canShare && navigator.canShare({ files: [wavFile] }));
     $('#wavReady').hidden = false;
-    btn.hidden = true;
   } catch (e) {
     console.error(e);
     toast(tx('Unable to create the file on this device.'));
-  } finally { btn.disabled = false; btn.textContent = tx('Create the audio file'); }
+  } finally { btn.disabled = false; title.textContent = tx('Download the sound'); }
 };
 $('#wavPreview').addEventListener('play', () => engine.stop());
 $('#wavShare').onclick = async () => {
@@ -511,9 +513,9 @@ const dbText = d => `${d >= 0 ? '' : '−'}${Math.abs(d).toFixed(1).replace('.',
 let mask = null; // test in progress
 function showMaskSummary() {
   const m = state.masking;
-  $('#maskSummary').textContent = !m ? tx('Masking level: not measured yet.')
-    : m.mml == null ? tx('Masking: not reached at the maximum level ({d}).', { d: new Date(m.date).toLocaleDateString(LANG === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) })
-    : tx('Masking level: {v} above threshold ({d}).', { v: dbText(m.mml - m.threshold), d: new Date(m.date).toLocaleDateString(LANG === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) });
+  $('#maskSummary').textContent = !m ? tx('Not measured yet')
+    : m.mml == null ? tx('Not reached at the maximum · {d}', { d: new Date(m.date).toLocaleDateString(LANG === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) })
+    : tx('{v} above threshold · {d}', { v: dbText(m.mml - m.threshold), d: new Date(m.date).toLocaleDateString(LANG === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) });
 }
 function maskStep(n) { for (const s of $$('.mask-step')) s.hidden = +s.dataset.step !== n; }
 function bindLevel(id, onChange) {

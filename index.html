@@ -183,47 +183,40 @@
     <footer class="tt-foot">tinytus helps others hear what you perceive. It is not a medical tool: it does not diagnose or treat anything. Everything stays on your device.</footer>
   </main>
 
-  <dialog id="shareDialog" class="tt-dialog" aria-labelledby="shareTitle">
+  <dialog id="shareDialog" class="tt-dialog share-sheet" aria-labelledby="shareTitle">
     <form method="dialog"><button class="tt-icon-btn tt-dialog-close" aria-label="Close">×</button></form>
     <h2 id="shareTitle" class="tt-dialog-title">Share my tinnitus</h2>
-    <div class="tt-share-block">
-      <h3>Send a link</h3>
-      <p>Your loved ones listen in their browser, with no account or install.</p>
-      <input id="shareUrl" class="tt-input" readonly aria-label="Share link">
-      <div class="tt-row">
-        <button id="nativeShare" class="tt-btn tt-btn--primary">Share link</button>
-        <button id="copyLink" class="tt-btn tt-btn--secondary">Copy link</button>
-      </div>
+    <div class="share-main">
+      <button id="nativeShare" class="tt-btn tt-btn--primary"><svg aria-hidden="true"><use href="#i-share"/></svg>Share link</button>
+      <button id="copyLink" class="tt-btn tt-btn--secondary">Copy link</button>
     </div>
-    <div class="tt-share-block">
-      <h3>My code</h3>
-      <p>Keep this code to find your sound again. Enter it in tinytus to reopen it.</p>
-      <input id="shareCode" class="tt-input code-text" readonly aria-label="Sound code">
-      <div class="tt-row">
-        <button id="copyCode" class="tt-btn tt-btn--secondary">Copy</button>
-        <button id="saveCode" class="tt-btn tt-btn--secondary">Save</button>
-      </div>
+    <input id="shareUrl" class="offscreen" readonly tabindex="-1" aria-hidden="true">
+    <div class="share-code">
+      <span class="share-code-label">My code</span>
+      <input id="shareCode" class="code-text" readonly aria-label="Sound code">
+      <button id="copyCode" class="tt-chip">Copy</button>
+      <button id="saveCode" class="tt-chip">Save</button>
     </div>
-    <div class="tt-share-block">
-      <h3>Download the sound</h3>
-      <p>A 15-second audio file, created on your device.</p>
-      <button id="makeWav" class="tt-btn tt-btn--secondary">Create the audio file</button>
-      <div id="wavReady" hidden>
+    <div class="share-actions">
+      <button id="makeWav" class="share-row">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M11 3h2v9.6l3.3-3.3 1.4 1.4L12 16.4l-5.7-5.7 1.4-1.4 3.3 3.3V3zM5 19h14v2H5z" fill="currentColor"/></svg>
+        <span><strong class="row-title">Download the sound</strong><small>A 15-second audio file</small></span><span class="chev">›</span>
+      </button>
+      <div id="wavReady" class="wav-ready" hidden>
         <audio id="wavPreview" controls preload="auto"></audio>
         <div class="tt-row">
           <a id="wavDownload" class="tt-btn tt-btn--secondary" download="my-tinnitus.wav">Save</a>
           <button id="wavShare" class="tt-btn tt-btn--primary" hidden>Share file</button>
         </div>
       </div>
-    </div>
-    <div class="tt-share-block">
-      <h3>Report for my doctor</h3>
-      <p>A summary of your sound’s characteristics, to save as PDF or print.</p>
-      <p id="maskSummary" class="mask-summary"></p>
-      <div class="tt-row">
-        <button id="openMask" class="tt-btn tt-btn--secondary">Measure masking</button>
-        <button id="makeReport" class="tt-btn tt-btn--primary">Create the report (PDF)</button>
-      </div>
+      <button id="makeReport" class="share-row">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6V2zm8 1.5V8h4.5L14 3.5zM9 12h8v1.6H9V12zm0 3.5h8v1.6H9v-1.6z" fill="currentColor"/></svg>
+        <span><strong>Report for my doctor</strong><small>PDF to save or print</small></span><span class="chev">›</span>
+      </button>
+      <button id="openMask" class="share-row">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 12h2v3H3zm4-4h2v11H7zm4-5h2v18h-2zm4 6h2v7h-2zm4 2h2v3h-2z" fill="currentColor"/></svg>
+        <span><strong>Measure masking</strong><small id="maskSummary"></small></span><span class="chev">›</span>
+      </button>
     </div>
   </dialog>
 

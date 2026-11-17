@@ -171,6 +171,9 @@ const FR = {
   '{v} re device full scale': '{v} par rapport au maximum de l’appareil',
   'Not reached: the tinnitus remained audible at the maximum test level.': 'Non atteint : l’acouphène restait audible au niveau maximum du test.',
   'Self-administered and uncalibrated: absolute levels depend on the device, the headphones and the volume. The differences above the threshold (comparable to dB SL) are meaningful only if the same headphones and volume were used for both steps.': 'Auto-test non étalonné : les niveaux absolus dépendent de l’appareil, des écouteurs et du volume. Les écarts au-dessus du seuil (comparables à des dB SL) n’ont de sens que si les mêmes écouteurs et le même volume ont été utilisés pour les deux étapes.',
+  'A 15-second audio file': 'Un fichier audio de 15 secondes', 'PDF to save or print': 'PDF à enregistrer ou imprimer',
+  'Not measured yet': 'Pas encore mesuré',
+  'Not reached at the maximum · {d}': 'Non atteint au maximum · {d}', '{v} above threshold · {d}': '{v} au-dessus du seuil · {d}',
   // Dynamic texts
   'Sound {n}': 'Son {n}',
   'Sound {n}: {f}': 'Son {n} : {f}',
