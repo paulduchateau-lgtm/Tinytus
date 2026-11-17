@@ -39,6 +39,8 @@ const FR = {
   'Pulse speed': 'Vitesse du battement', 'Slow': 'Lente', 'Fast': 'Rapide',
   'Sound width': 'Largeur du son', 'Narrow': 'Étroit', 'Wide': 'Large',
   'Frequency': 'Fréquence', 'Lower frequency': 'Fréquence plus grave', 'Higher frequency': 'Fréquence plus aiguë', 'Frequency in hertz': 'Fréquence en hertz',
+  'Very high sounds fade with age. Don’t turn the volume up to hear them.': 'Les sons très aigus deviennent inaudibles avec l’âge. N’augmentez pas le volume pour les entendre.',
+  'Very low sounds need headphones: phone speakers can’t play them.': 'Les sons très graves demandent des écouteurs\u00a0: le haut-parleur du téléphone ne les reproduit pas.',
   'Hear what I hear': 'Écoutez ce que j’entends',
   'This sound was recreated by someone living with tinnitus, to help you understand what they hear.':
     'Ce son a été recréé par une personne qui vit avec des acouphènes, pour vous faire comprendre ce qu’elle perçoit.',

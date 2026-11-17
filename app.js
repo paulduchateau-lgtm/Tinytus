@@ -1,6 +1,6 @@
 // Tinnitus Studio user interface.
 import { LiveEngine, freqOf, xOf, F_MIN, F_MAX, rateOf } from './audio-engine.js';
-import { PRESETS, makeTrack, sanitizeTracks, MAX_TRACKS } from './presets.js';
+import { PRESETS, makeTrack, sanitizeTracks, xFromV1, MAX_TRACKS } from './presets.js';
 import { encodeShare, decodeShare } from './sharing.js';
 import { renderWav } from './export.js';
 import { longListen } from './long-listen.js';
@@ -23,6 +23,7 @@ let shared = null;    // composition received through a link
 function load() {
   try {
     const d = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
+    if (d && Array.isArray(d.tracks) && !(d.v >= 2)) for (const t of d.tracks) if (t && typeof t.x === 'number') t.x = xFromV1(t.x);
     const t = sanitizeTracks(d && d.tracks);
     if (!t) return;
     state.tracks = t;
@@ -35,7 +36,7 @@ function save() {
   saveTimer = setTimeout(() => {
     try {
       localStorage.setItem(STORE_KEY, JSON.stringify({
-        v: 1, sel: state.sel,
+        v: 2, sel: state.sel,
         tracks: state.tracks.map(({ id, ...t }) => t),
       }));
     } catch (e) { /* private browsing: ignored */ }
@@ -238,7 +239,7 @@ function renderTrackBar() {
 function addTrack() {
   if (state.tracks.length >= MAX_TRACKS) return;
   const c = cur();
-  const t = makeTrack({ x: c.x < 0.6 ? Math.min(1, c.x + 0.25) : c.x - 0.25, y: 0.08, level: 0.26 });
+  const t = makeTrack({ x: c.x < 0.6 ? Math.min(1, c.x + 0.18) : c.x - 0.18, y: 0.08, level: 0.26 });
   state.tracks.push(t);
   state.sel = state.tracks.length - 1;
   changed();
@@ -288,7 +289,13 @@ function positionDots() {
 // Frequency of the selected sound: always shown, editable by typing or with − / + (hold to repeat).
 const freqInput = $('#freq');
 function showFreq() {
-  if (document.activeElement !== freqInput && cur()) freqInput.value = Math.round(freqOf(cur().x));
+  if (!cur()) return;
+  const f = freqOf(cur().x);
+  if (document.activeElement !== freqInput) freqInput.value = Math.round(f);
+  const hint = $('#freqHint');
+  hint.textContent = f >= 12000 ? tx('Very high sounds fade with age. Don’t turn the volume up to hear them.')
+    : f <= 60 ? tx('Very low sounds need headphones: phone speakers can’t play them.') : '';
+  hint.hidden = !hint.textContent;
 }
 function setFreq(f) {
   if (!Number.isFinite(f)) return showFreq();

@@ -5,7 +5,7 @@
 // with fades baked in: no loop point, so no gap or click, even on iPhone where looping an
 // audio element leaves a tiny gap. If service workers are unavailable, the loop is played
 // with `audio.loop` as a fallback.
-import { renderLoop, encodeWav } from './export.js';
+import { renderLoop, encodeWav, SR } from './export.js';
 import { tx } from './i18n.js';
 
 const CACHE = 'tinnitus-long';
@@ -35,7 +35,7 @@ async function prepareStream(blob, minutes) {
     const cache = await caches.open(CACHE);
     for (const k of await cache.keys()) await cache.delete(k); // keep only the latest loop
     const pcm = await blob.slice(44).arrayBuffer();
-    await cache.put(new URL(`long/${id}.pcm`, location.href).href, new Response(pcm, { headers: { 'x-sr': '44100', 'x-ch': '2' } }));
+    await cache.put(new URL(`long/${id}.pcm`, location.href).href, new Response(pcm, { headers: { 'x-sr': String(SR), 'x-ch': '2' } }));
     return `long/${id}.wav?m=${minutes}`;
   } catch (e) { return null; }
 }

@@ -14,7 +14,7 @@ The look follows the **tinytus design system**: a warm "Day" theme by default (c
 ## User flow
 
 1. **What does your tinnitus sound like?** Nine starting sounds (whistle, humming, hissing, crackling, pulsing, several sounds, crickets, cicadas, bell), each playable with a single tap (or "Start from scratch").
-2. **Fine-tune your sound**. A colour spectrum: horizontally lower ↔ higher, vertically pure ↔ diffuse. Three secondary controls: Loudness, Pulse, Grain. Up to 4 layered sounds. The "More settings" panel holds the ear, tone, pulse speed, sound width. "More settings" adds ear, tone (Soft, Round, Rich, or Bell: inharmonic partials ringing continuously), pulse shape (Gentle; Chirping for cricket-like chirps; Buzzing for the perfectly regular click train of cicadas), pulse speed and width. The frequency of the selected sound is always shown under the spectrum and can be typed in Hz (e.g. "4120", "4,1k") or nudged by 1 % with − / + (hold to repeat).
+2. **Fine-tune your sound**. A colour spectrum: horizontally lower ↔ higher, vertically pure ↔ diffuse. Three secondary controls: Loudness, Pulse, Grain. Up to 4 layered sounds. The "More settings" panel holds the ear, tone, pulse speed, sound width. "More settings" adds ear, tone (Soft, Round, Rich, or Bell: inharmonic partials ringing continuously), pulse shape (Gentle; Chirping for cricket-like chirps; Buzzing for the perfectly regular click train of cicadas), pulse speed and width. The spectrum spans the whole hearing range, 20 Hz to 20 kHz, so users can also find where they stop hearing. The frequency of the selected sound is always shown under the spectrum and can be typed in Hz (e.g. "4120", "4,1k") or nudged by 1 % with − / + (hold to repeat).
 3. **Share my tinnitus**. A link that contains the whole composition (in the `#s=…` fragment), or a 15-second WAV file generated locally.
 
 ## Files
@@ -38,7 +38,7 @@ The WAV export uses exactly the same `createVoice()` function as live playback.
 
 ### Link format (v1)
 
-`#s=` followed by the composition encoded in base64url: one version byte, the track count, then 9 bytes per track (pitch on 16 bits, then purity, loudness, pulse, grain, speed, width, and flags for on/off, ear, tone and pulse shape), and finally a checksum. A 4-track link is about 55 characters. On opening, the version, length, checksum and values are all validated. A damaged link returns to the home screen with a message.
+`#s=` followed by the composition encoded in base64url (version 2: pitch over 20 Hz – 20 kHz; version 1 links, 80 Hz – 14 kHz, are converted and still play the same sound): one version byte, the track count, then 9 bytes per track (pitch on 16 bits, then purity, loudness, pulse, grain, speed, width, and flags for on/off, ear, tone and pulse shape), and finally a checksum. A 4-track link is about 55 characters. On opening, the version, length, checksum and values are all validated. A damaged link returns to the home screen with a message.
 
 ## 30-minute listening
 

@@ -1,7 +1,7 @@
 // Local WAV export: same synthesis graph as live playback, rendered with OfflineAudioContext.
 import { createVoice, createMaster } from './audio-engine.js';
 
-const SR = 44100;
+export const SR = 48000; // 48 kHz keeps the top of the hearing range (up to 20 kHz) at full level
 
 const offline = (seconds) => {
   const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;

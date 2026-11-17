@@ -7,9 +7,9 @@
 //   [checksum: sum of previous bytes modulo 256]
 // Example: https://username.github.io/tinnitus-studio/#s=AQHXCgpNAAAAUoAB…
 
-import { sanitizeTrack, EARS, WAVES, SHAPES, MAX_TRACKS } from './presets.js';
+import { sanitizeTrack, xFromV1, EARS, WAVES, SHAPES, MAX_TRACKS } from './presets.js';
 
-const VERSION = 1;
+const VERSION = 2; // v2: pitch spans 20 Hz – 20 kHz (v1: 80 Hz – 14 kHz, still readable)
 const PREFIX = 's=';
 const PER_TRACK = 9;
 const q = v => Math.round(Math.min(1, Math.max(0, v)) * 255);
@@ -34,7 +34,7 @@ export function decodeShare(hash) {
   if (!/^[A-Za-z0-9+/]+$/.test(b64)) throw new Error('characters');
   const bin = atob(b64 + '='.repeat((4 - (b64.length % 4)) % 4));
   const b = Array.from(bin, c => c.charCodeAt(0));
-  if (b[0] !== VERSION) throw new Error('version');
+  if (b[0] !== VERSION && b[0] !== 1) throw new Error('version');
   const n = b[1];
   if (!(n >= 1 && n <= MAX_TRACKS) || b.length !== 3 + n * PER_TRACK) throw new Error('length');
   const sum = b.slice(0, -1).reduce((s, v) => s + v, 0) & 255;
@@ -45,7 +45,7 @@ export function decodeShare(hash) {
     const ear = (f >> 1) & 3, wave = (f >> 3) & 3;
     if (ear >= EARS.length || wave >= WAVES.length || ((f >> 5) & 3) >= SHAPES.length || f >> 7) throw new Error('values');
     tracks.push(sanitizeTrack({
-      x: ((b[o] << 8) | b[o + 1]) / 65535,
+      x: (b[0] === 1 ? xFromV1 : v => v)(((b[o] << 8) | b[o + 1]) / 65535),
       y: b[o + 2] / 255, level: b[o + 3] / 255, beat: b[o + 4] / 255,
       grain: b[o + 5] / 255, rate: b[o + 6] / 255, width: b[o + 7] / 255,
       on: !!(f & 1), ear: EARS[ear], wave: WAVES[wave], shape: SHAPES[(f >> 5) & 3],

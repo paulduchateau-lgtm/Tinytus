@@ -1,13 +1,15 @@
 // Track state and preset sounds.
 // Presets are plausible synthetic starting points, not medical references.
 
+import { xOf } from './audio-engine.js';
+
 export const MAX_TRACKS = 4;
 export const WAVES = ['sine', 'triangle', 'sawtooth', 'bell'];
 export const SHAPES = ['smooth', 'chirp', 'buzz']; // pulse shape: gentle sine, cricket chirps, or regular cicada buzz
 export const EARS = ['B', 'L', 'R'];
 
 const DEFAULTS = {
-  x: 0.55,     // low (0) → high (1)
+  x: xOf(1370), // low (0) → high (1), 20 Hz → 20 kHz
   y: 0.05,     // pure (0) → diffuse (1)
   level: 0.3,  // loudness
   beat: 0,     // steady (0) → pulsing (1)
@@ -35,7 +37,11 @@ export function sanitizeTrack(p) {
   return t;
 }
 
-export const makeTrack = (p = {}) => sanitizeTrack({ ...DEFAULTS, ...p });
+/** Presets may give a frequency in Hz (`hz`) instead of a spectrum position (`x`). */
+export const makeTrack = ({ hz, ...p } = {}) => sanitizeTrack({ ...DEFAULTS, ...p, ...(hz ? { x: xOf(hz) } : {}) });
+
+/** Spectrum positions saved before the range became 20 Hz – 20 kHz used 80 Hz – 14 kHz. */
+export const xFromV1 = x => xOf(80 * Math.pow(175, Math.min(1, Math.max(0, x))));
 
 export function sanitizeTracks(list) {
   if (!Array.isArray(list)) return null;
@@ -45,21 +51,21 @@ export function sanitizeTracks(list) {
 
 export const PRESETS = [
   { id: 'whistle', art: 'whistle', fr: ['Sifflement aigu', 'Un son fin, aigu et continu.'], name: 'High whistle', desc: 'A thin, high, steady tone.',
-    tracks: [{ x: 0.84, y: 0.04, level: 0.3 }] },
+    tracks: [{ hz: 6127, y: 0.04, level: 0.3 }] },
   { id: 'buzz', art: 'buzz', fr: ['Bourdonnement', 'Un son grave, comme un petit moteur.'], name: 'Humming', desc: 'A low sound, like a small motor.',
-    tracks: [{ x: 0.1, y: 0.12, level: 0.4, wave: 'sawtooth', grain: 0.1 }] },
+    tracks: [{ hz: 134, y: 0.12, level: 0.4, wave: 'sawtooth', grain: 0.1 }] },
   { id: 'hiss', art: 'hiss', fr: ['Souffle', 'Un bruit d’air ou de radio.'], name: 'Hissing', desc: 'Like rushing air or radio static.',
-    tracks: [{ x: 0.72, y: 0.96, level: 0.32 }] },
+    tracks: [{ hz: 3297, y: 0.96, level: 0.32 }] },
   { id: 'crackle', art: 'crackle', fr: ['Grésillement', 'Un son granuleux et électrique.'], name: 'Crackling', desc: 'A grainy, electric sound.',
-    tracks: [{ x: 0.66, y: 0.62, level: 0.36, grain: 0.85, wave: 'triangle' }] },
+    tracks: [{ hz: 2418, y: 0.62, level: 0.36, grain: 0.85, wave: 'triangle' }] },
   { id: 'pulse', art: 'pulse', fr: ['Pulsation', 'Un son qui bat régulièrement.'], name: 'Pulsing', desc: 'A sound that beats steadily.',
-    tracks: [{ x: 0.36, y: 0.22, level: 0.38, beat: 0.9, rate: 0.27 }] },
+    tracks: [{ hz: 514, y: 0.22, level: 0.38, beat: 0.9, rate: 0.27 }] },
   { id: 'multi', art: 'multi', fr: ['Plusieurs sons', 'Deux tonalités différentes superposées.'], name: 'Several sounds', desc: 'Two different tones layered together.',
-    tracks: [{ x: 0.76, y: 0.04, level: 0.28 }, { x: 0.88, y: 0.1, level: 0.24 }] },
+    tracks: [{ hz: 4053, y: 0.04, level: 0.28 }, { hz: 7533, y: 0.1, level: 0.24 }] },
   { id: 'crickets', art: 'crickets', fr: ['Grillons', 'Des « cri-cri » aigus et réguliers.'], name: 'Crickets', desc: 'High, regular chirping.',
-    tracks: [{ x: 0.8, y: 0.04, level: 0.32, beat: 1, shape: 'chirp', rate: 0.53 }] },
+    tracks: [{ hz: 4983, y: 0.04, level: 0.32, beat: 1, shape: 'chirp', rate: 0.53 }] },
   { id: 'cicadas', art: 'cicadas', fr: ['Cigales', 'Un bourdonnement aigu d’été, qui grésille.'], name: 'Cicadas', desc: 'A high, buzzing summer drone.',
-    tracks: [{ x: 0.83, y: 0.45, level: 0.34, beat: 0.9, shape: 'buzz', rate: 0.64 }] },
+    tracks: [{ hz: 5819, y: 0.45, level: 0.34, beat: 0.9, shape: 'buzz', rate: 0.64 }] },
   { id: 'bell', art: 'bell', fr: ['Cloche', 'Un tintement métallique qui ne s’arrête pas.'], name: 'Bell', desc: 'A metallic tone that keeps ringing.',
-    tracks: [{ x: 0.58, y: 0.03, level: 0.28, wave: 'bell', beat: 0.12, rate: 0.05 }] },
+    tracks: [{ hz: 1600, y: 0.03, level: 0.28, wave: 'bell', beat: 0.12, rate: 0.05 }] },
 ];

@@ -2,8 +2,8 @@
 // Used identically by live playback (AudioContext) and WAV export
 // (OfflineAudioContext): a single function builds a track's graph.
 
-export const F_MIN = 80;
-export const F_MAX = 14000;
+export const F_MIN = 20;     // limits of human hearing
+export const F_MAX = 20000;
 const MAX_GAIN = 0.45;  // gain of one track at full level (before the limiter)
 const TAU = 0.03;       // smoothing of real-time changes (seconds)
 
@@ -81,7 +81,7 @@ const BELL_NORM = 1 / Math.sqrt(BELL.reduce((s, [, a]) => s + a * a, 0)); // sam
 
 /** Internal parameters of a track. Pure function: easy to test. */
 export function voiceParams(t, sr, B) {
-  const f = Math.min(freqOf(t.x), sr * 0.45);
+  const f = Math.min(freqOf(t.x), sr * 0.47);
   const y = clamp(t.y);
   // Purity → noise bandwidth (high Q = narrow = almost tonal).
   const Q = (0.35 + 45 * Math.pow(1 - y, 2.2)) * Math.pow(2, (0.5 - clamp(t.width)) * 4);
@@ -99,7 +99,7 @@ export function voiceParams(t, sr, B) {
     f, Q,
     type: bell ? 'sine' : t.wave,
     bell,
-    lp: t.wave === 'sine' || bell ? sr * 0.45 : Math.min(f * 7, sr * 0.45),
+    lp: t.wave === 'sine' || bell ? sr * 0.49 : Math.min(f * 7, sr * 0.49),
     tone: Math.pow(1 - y, 1.3),
     noise: Math.pow(y, 0.8) * noiseComp * 0.8,
     grainBase: 1 - g, grainDepth: g,
