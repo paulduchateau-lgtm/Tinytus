@@ -464,7 +464,7 @@ $('#copyCode').onclick = async () => {
 };
 $('#saveCode').onclick = async () => {
   const code = $('#shareCode').value;
-  const text = `tinytus\n${tx('Code')}: ${code}\n${$('#shareUrl').value}\n${new Date().toLocaleDateString(LANG === 'fr' ? 'fr-FR' : 'en-GB')}\n`;
+  const text = `tinytus\n${tx('Code')}: ${code}\n${$('#shareUrl').value}\n${new Date().toLocaleDateString(LANG === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}\n`;
   const file = new File([text], tx('tinytus-code.txt'), { type: 'text/plain' });
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
     try { await navigator.share({ files: [file], title: tx('My tinnitus') }); return; } catch (e) { if (e.name === 'AbortError') return; }

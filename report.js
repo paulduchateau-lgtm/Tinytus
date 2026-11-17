@@ -5,7 +5,7 @@ import { freqOf, rateOf, buzzRateOf, F_MIN, F_MAX } from './audio-engine.js';
 import { LANG, tx } from './i18n.js';
 
 const COLORS = ['#e8702e', '#d6406e', '#8457c9', '#1f9a85']; // print-safe track colours
-const pct = v => Math.round(v * 100) + ' %';
+const pct = v => Math.round(v * 100) + (LANG === 'fr' ? '\u00a0%' : '%'); // French puts a (non-breaking) space before %
 const num = (v, d = 0) => v.toLocaleString(LANG === 'fr' ? 'fr-FR' : 'en-GB', { maximumFractionDigits: d, minimumFractionDigits: d });
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
