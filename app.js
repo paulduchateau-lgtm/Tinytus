@@ -4,6 +4,7 @@ import { PRESETS, makeTrack, sanitizeTracks, xFromV1, MAX_TRACKS } from './prese
 import { encodeShare, decodeShare } from './sharing.js';
 import { renderWav } from './export.js';
 import { longListen } from './long-listen.js';
+import { printReport } from './report.js';
 import { LANG, tx, localizePage } from './i18n.js';
 
 const $ = s => document.querySelector(s);
@@ -402,8 +403,11 @@ const dialog = $('#shareDialog');
 let wavUrl = null, wavFile = null;
 const shareLink = () => location.href.split('#')[0] + '#' + encodeShare(state.tracks);
 
+const shareCode = () => encodeShare(state.tracks).replace(/^s=/, '');
+
 $('#share').onclick = () => {
   $('#shareUrl').value = shareLink();
+  $('#shareCode').value = shareCode();
   $('#nativeShare').hidden = !navigator.share;
   $('#makeWav').hidden = false;
   $('#wavReady').hidden = true;
@@ -449,6 +453,53 @@ $('#wavShare').onclick = async () => {
   try { await navigator.share({ files: [wavFile], title: tx('My tinnitus') }); } catch (e) {
     if (e.name !== 'AbortError') toast(tx('Sharing didn’t work. Use “Save”.'));
   }
+};
+
+// ---------- Sound code: save it, and type it back later ----------
+$('#shareCode').onfocus = e => e.target.select();
+$('#copyCode').onclick = async () => {
+  const code = $('#shareCode').value;
+  try { await navigator.clipboard.writeText(code); toast(tx('Code copied.')); }
+  catch (e) { $('#shareCode').focus(); $('#shareCode').select(); toast(tx('Select the code to copy it.')); }
+};
+$('#saveCode').onclick = async () => {
+  const code = $('#shareCode').value;
+  const text = `tinytus\n${tx('Code')}: ${code}\n${$('#shareUrl').value}\n${new Date().toLocaleDateString(LANG === 'fr' ? 'fr-FR' : 'en-GB')}\n`;
+  const file = new File([text], tx('tinytus-code.txt'), { type: 'text/plain' });
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try { await navigator.share({ files: [file], title: tx('My tinnitus') }); return; } catch (e) { if (e.name === 'AbortError') return; }
+  }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(file); a.download = file.name; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+};
+/** Accepts a bare code, "s=…", or a whole share link. */
+function parseCode(raw) {
+  const s = String(raw).trim();
+  const m = s.match(/s=([A-Za-z0-9_-]+)/);
+  return decodeShare('s=' + (m ? m[1] : s.replace(/[\s"'«»“”]/g, '')));
+}
+for (const form of $$('[data-code-form]')) {
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    const input = form.elements.code;
+    let tracks;
+    try { tracks = parseCode(input.value); } catch (err) { toast(tx('This code is incomplete or damaged.')); return; }
+    input.value = '';
+    input.blur();
+    const det = form.closest('details.code-entry'); if (det) det.open = false;
+    state.tracks = tracks; state.sel = 0; save();
+    engine.stop(); longListen.stop();
+    if (screen === 'editor') renderEditor(); else goEditor();
+    toast(tx('Sound loaded.'));
+  });
+}
+
+// ---------- Report (save as PDF) ----------
+$('#makeReport').onclick = () => {
+  const info = { code: shareCode(), url: shareLink() };
+  dialog.close();
+  printReport(state.tracks, info);
 };
 
 // ---------- Received link ----------

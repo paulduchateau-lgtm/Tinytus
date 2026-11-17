@@ -63,6 +63,13 @@
       </button>
       <div id="presets" class="tt-presets"></div>
       <button id="fromScratch" class="tt-link">Start from scratch</button>
+      <details class="code-entry">
+        <summary class="tt-link">I have a code</summary>
+        <form class="code-form" data-code-form autocomplete="off">
+          <input class="tt-input" name="code" placeholder="Paste or type the code" aria-label="Sound code" autocapitalize="off" autocorrect="off" spellcheck="false">
+          <button class="tt-btn tt-btn--secondary">Open</button>
+        </form>
+      </details>
       <div class="tt-sticky"><button id="toEditor" class="tt-btn tt-btn--primary" disabled>Choose a sound</button></div>
     </section>
 
@@ -133,6 +140,12 @@
               <label class="tt-ctl"><span class="tt-ctl-name">Sound width</span>
                 <input type="range" class="tt-range" id="width" min="0" max="1" step="0.005">
                 <span class="tt-ends"><span>Narrow</span><span>Wide</span></span></label>
+              <div class="tt-ctl"><span class="tt-ctl-name">Load a code</span>
+                <form class="code-form" data-code-form autocomplete="off">
+                  <input class="tt-input" name="code" placeholder="Paste or type the code" aria-label="Sound code" autocapitalize="off" autocorrect="off" spellcheck="false">
+                  <button class="tt-btn tt-btn--secondary">Open</button>
+                </form>
+              </div>
             </div>
           </details>
           <p class="tt-note">Keep the volume comfortable and stop if the sound becomes unpleasant.</p>
@@ -184,6 +197,15 @@
       </div>
     </div>
     <div class="tt-share-block">
+      <h3>My code</h3>
+      <p>Keep this code to find your sound again. Enter it in tinytus to reopen it.</p>
+      <input id="shareCode" class="tt-input code-text" readonly aria-label="Sound code">
+      <div class="tt-row">
+        <button id="copyCode" class="tt-btn tt-btn--secondary">Copy</button>
+        <button id="saveCode" class="tt-btn tt-btn--secondary">Save</button>
+      </div>
+    </div>
+    <div class="tt-share-block">
       <h3>Download the sound</h3>
       <p>A 15-second audio file, created on your device.</p>
       <button id="makeWav" class="tt-btn tt-btn--secondary">Create the audio file</button>
@@ -195,7 +217,14 @@
         </div>
       </div>
     </div>
+    <div class="tt-share-block">
+      <h3>Report for my doctor</h3>
+      <p>A summary of your sound’s characteristics, to save as PDF or print.</p>
+      <button id="makeReport" class="tt-btn tt-btn--secondary">Create the report (PDF)</button>
+    </div>
   </dialog>
+
+  <div id="report" class="report"></div>
 
   <div id="toast" class="tt-toast" role="status" aria-live="polite"></div>
 </body>
