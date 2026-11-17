@@ -19,6 +19,10 @@ function prng(seed) {
   return () => (seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296;
 }
 
+const BUZZ_CYCLES = 100, FROZEN_LEN = 2048;
+/** Pulse speed (0..1) in the "buzzing" shape → clicks per second (40 to 320). */
+export const buzzRateOf = r => 40 * Math.pow(2, 3 * clamp(r));
+
 const cache = new WeakMap();
 /** White-noise and “grain” envelope buffers, created once per context. */
 function buffers(ctx) {
@@ -53,7 +57,18 @@ function buffers(ctx) {
     const v = j < on ? Math.sin(Math.PI * ((j / on) * PULSES % 1)) ** 2 : 0;
     c[j] = v; c1 += v; c2 += v * v;
   }
-  b = { noise, grain, m1: m1 / len, m2: m2 / len, chirp, c1: c1 / clen, c2: c2 / clen };
+  // Buzz envelope (cicadas): 100 identical sharp clicks (sin⁴) per second at playbackRate 1,
+  // so playbackRate = clicks per second / 100. Perfectly regular, unlike the random grain.
+  const buzz = ctx.createBuffer(1, clen, sr), z = buzz.getChannelData(0);
+  let z1 = 0, z2 = 0;
+  for (let j = 0; j < clen; j++) {
+    const v = Math.sin(Math.PI * ((j / clen) * BUZZ_CYCLES % 1)) ** 4;
+    z[j] = v; z1 += v; z2 += v * v;
+  }
+  // "Frozen" noise for the buzz shape: a short snippet replayed once per click, so every click is identical.
+  const frozen = ctx.createBuffer(1, FROZEN_LEN, sr), fz = frozen.getChannelData(0);
+  for (let j = 0; j < FROZEN_LEN; j++) fz[j] = rand() * 2 - 1;
+  b = { noise, grain, m1: m1 / len, m2: m2 / len, chirp, c1: c1 / clen, c2: c2 / clen, buzz, z1: z1 / clen, z2: z2 / clen, frozen };
   cache.set(ctx, b);
   return b;
 }
@@ -73,10 +88,10 @@ export function voiceParams(t, sr, B) {
   const noiseComp = clamp(1.225 / Math.sqrt(bw / (sr / 2)), 0.5, 40);
   const g = clamp(t.grain), d = clamp(t.beat), lvl = clamp(t.level);
   const grainComp = 1 / Math.sqrt((1 - g) ** 2 + 2 * g * (1 - g) * B.m1 + g * g * B.m2);
-  const chirp = t.shape === 'chirp';
-  // Envelope = base + depth · modulator. Smooth: sine in [-1, 1]. Chirp: pulses in [0, 1].
-  const beatComp = chirp ? 1 / Math.sqrt((1 - d) ** 2 + 2 * d * (1 - d) * B.c1 + d * d * B.c2)
-                         : 1 / Math.sqrt((1 - d / 2) ** 2 + d * d / 8);
+  const chirp = t.shape === 'chirp', buzz = t.shape === 'buzz';
+  // Envelope = base + depth · modulator. Smooth: sine in [-1, 1]. Chirp / buzz: pulses in [0, 1].
+  const pulseComp = (a, b) => 1 / Math.sqrt((1 - d) ** 2 + 2 * d * (1 - d) * a + d * d * b);
+  const beatComp = chirp ? pulseComp(B.c1, B.c2) : buzz ? pulseComp(B.z1, B.z2) : 1 / Math.sqrt((1 - d / 2) ** 2 + d * d / 8);
   const bell = t.wave === 'bell';
   return {
     f, Q,
@@ -86,10 +101,12 @@ export function voiceParams(t, sr, B) {
     tone: Math.pow(1 - y, 1.3),
     noise: Math.pow(y, 0.8) * noiseComp * 0.8,
     grainBase: 1 - g, grainDepth: g,
-    beatBase: chirp ? 1 - d : 1 - d / 2,
-    beatDepth: chirp ? 0 : d / 2,
+    beatBase: chirp || buzz ? 1 - d : 1 - d / 2,
+    beatDepth: chirp || buzz ? 0 : d / 2,
     chirpDepth: chirp ? d : 0,
-    rate: rateOf(t.rate),
+    buzzDepth: buzz ? d : 0,
+    frozen: buzz,
+    rate: buzz ? buzzRateOf(t.rate) : rateOf(t.rate),
     gain: t.on ? MAX_GAIN * lvl * lvl * Math.min(2.5, grainComp * beatComp) : 0,
     pan: t.ear === 'L' ? -1 : t.ear === 'R' ? 1 : 0,
   };
@@ -109,6 +126,9 @@ export function createVoice(ctx, out, track, { fadeIn = 0.08, period = 0 } = {})
   const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 0.3;
   const tone = ctx.createGain();
   const noise = ctx.createBufferSource(); noise.buffer = B.noise; noise.loop = true;
+  const noiseIn = ctx.createGain();
+  const frozenSrc = ctx.createBufferSource(); frozenSrc.buffer = B.frozen; frozenSrc.loop = true;
+  const frozenIn = ctx.createGain(); frozenIn.gain.value = 0;
   const bp = ctx.createBiquadFilter(); bp.type = 'bandpass';
   const noiseG = ctx.createGain();
   const grainVca = ctx.createGain();
@@ -119,6 +139,8 @@ export function createVoice(ctx, out, track, { fadeIn = 0.08, period = 0 } = {})
   const lfoDepth = ctx.createGain();
   const chirpSrc = ctx.createBufferSource(); chirpSrc.buffer = B.chirp; chirpSrc.loop = true;
   const chirpDepth = ctx.createGain(); chirpDepth.gain.value = 0;
+  const buzzSrc = ctx.createBufferSource(); buzzSrc.buffer = B.buzz; buzzSrc.loop = true;
+  const buzzDepth = ctx.createGain(); buzzDepth.gain.value = 0;
   const oscG = ctx.createGain();
   // Bell partials (silent unless the Bell timbre is selected); the first partial is `osc` itself.
   const partials = BELL.slice(1).map(() => { const o = ctx.createOscillator(), g = ctx.createGain(); g.gain.value = 0; o.connect(g).connect(lp); return { o, g }; });
@@ -126,11 +148,13 @@ export function createVoice(ctx, out, track, { fadeIn = 0.08, period = 0 } = {})
   const pan = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
 
   osc.connect(oscG).connect(lp).connect(tone).connect(grainVca);
-  noise.connect(bp).connect(noiseG).connect(grainVca);
+  noise.connect(noiseIn).connect(bp).connect(noiseG).connect(grainVca);
+  frozenSrc.connect(frozenIn).connect(bp);
   grainSrc.connect(grainDepth).connect(grainVca.gain);
   grainVca.connect(beatVca);
   lfo.connect(lfoDepth).connect(beatVca.gain);
   chirpSrc.connect(chirpDepth).connect(beatVca.gain);
+  buzzSrc.connect(buzzDepth).connect(beatVca.gain);
   beatVca.connect(level);
   if (pan) level.connect(pan).connect(out); else level.connect(out);
 
@@ -145,8 +169,9 @@ export function createVoice(ctx, out, track, { fadeIn = 0.08, period = 0 } = {})
   function update(tr, now = false) {
     const p = voiceParams(tr, sr, B), t = ctx.currentTime;
     const q = v => (period ? Math.max(1, Math.round(v * period)) / period : v);
-    p.f = q(p.f);
     p.rate = q(p.rate);
+    // Buzz: pitch locked to a whole number of cycles per click, so every click is identical.
+    p.f = p.frozen ? Math.max(1, Math.round(p.f / p.rate)) * p.rate : q(p.f);
     if (osc.type !== p.type) {
       if (now || last.tone === undefined) osc.type = p.type;
       else { // timbre change: duck briefly to avoid a click
@@ -173,20 +198,25 @@ export function createVoice(ctx, out, track, { fadeIn = 0.08, period = 0 } = {})
     set('r', lfo.frequency, p.rate, t, now);
     set('cd', chirpDepth.gain, p.chirpDepth, t, now);
     set('cr', chirpSrc.playbackRate, p.rate, t, now);
+    set('zd', buzzDepth.gain, p.buzzDepth, t, now);
+    set('zr', buzzSrc.playbackRate, p.rate / BUZZ_CYCLES, t, now);
+    set('ni', noiseIn.gain, p.frozen ? 0 : 1, t, now);
+    set('fi', frozenIn.gain, p.frozen ? 1 : 0, t, now);
+    set('fr', frozenSrc.playbackRate, (p.rate * FROZEN_LEN) / sr, t, now); // one snippet per click
     if (pan) set('pan', pan.pan, p.pan, t, now);
     if (last.gain !== undefined && last.gain !== p.gain) level.gain.setTargetAtTime(p.gain, t, 0.04);
     last.gain = p.gain;
   }
 
   update(track, true);
-  const t0 = ctx.currentTime, sources = [osc, noise, grainSrc, lfo, chirpSrc, ...partials.map(x => x.o)];
+  const t0 = ctx.currentTime, sources = [osc, noise, frozenSrc, grainSrc, lfo, chirpSrc, buzzSrc, ...partials.map(x => x.o)];
   if (fadeIn > 0) {
     level.gain.setValueAtTime(0, t0);
     level.gain.linearRampToValueAtTime(last.gain, t0 + fadeIn);
   } else level.gain.setValueAtTime(last.gain, t0);
   // Different offsets per track: two tracks never share the same noise.
   const off = (track.id * 0.7371) % 3;
-  osc.start(t0); lfo.start(t0); chirpSrc.start(t0);
+  osc.start(t0); lfo.start(t0); chirpSrc.start(t0); buzzSrc.start(t0); frozenSrc.start(t0);
   for (const { o } of partials) o.start(t0);
   noise.start(t0, off); grainSrc.start(t0, (off * 1.37) % 3);
 
@@ -197,7 +227,7 @@ export function createVoice(ctx, out, track, { fadeIn = 0.08, period = 0 } = {})
       hold(level.gain, t);
       level.gain.setTargetAtTime(0, t, fade / 4);
       for (const s of sources) s.stop(t + fade + 0.05);
-      osc.onended = () => { for (const n of [...sources, ...partials.map(x => x.g), oscG, lp, tone, bp, noiseG, grainVca, grainDepth, beatVca, lfoDepth, chirpDepth, level, pan]) n && n.disconnect(); };
+      osc.onended = () => { for (const n of [...sources, ...partials.map(x => x.g), oscG, lp, tone, bp, noiseG, grainVca, grainDepth, beatVca, lfoDepth, chirpDepth, buzzDepth, noiseIn, frozenIn, level, pan]) n && n.disconnect(); };
     },
   };
 }

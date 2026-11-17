@@ -153,7 +153,7 @@ function art(kind) {
     case 'pulse': return svg(`<path d="${path(300, t => 14 * Math.pow(Math.abs(Math.sin(t * Math.PI * 3)), 2) * Math.sin(t * 2 * Math.PI * 22))}" ${sw} stroke-width="1.8"/>`);
     case 'multi': return svg(`<path d="${path(240, t => 10 * Math.sin(t * 2 * Math.PI * 4))}" ${sw} stroke-width="2.4" opacity=".9"/><path d="${path(240, t => 6 * Math.sin(t * 2 * Math.PI * 11 + 1))}" stroke="currentColor" fill="none" stroke-width="1.3" opacity=".55"/>`);
     case 'crickets': return svg(`<path d="${path(360, t => { const c = (t * 3) % 1; return c < 0.34 ? 13 * Math.sin(Math.PI * c / 0.34) ** 2 * Math.sin(t * 2 * Math.PI * 60) : 0; })}" ${sw} stroke-width="1.5"/>`);
-    case 'cicadas': return svg(`<path d="${path(300, t => (7 + 7 * r()) * Math.sin(t * 2 * Math.PI * 34))}" ${sw} stroke-width="1.3"/>`);
+    case 'cicadas': return svg(`<path d="${path(480, t => 12 * Math.abs(Math.sin(t * Math.PI * 24)) ** 4 * Math.sin(t * 2 * Math.PI * 110))}" ${sw} stroke-width="1.3"/>`);
     case 'bell': return svg(`<path d="${path(300, t => 7 * Math.sin(t * 2 * Math.PI * 4) + 4.5 * Math.sin(t * 2 * Math.PI * 9.6 + 1) + 2.5 * Math.sin(t * 2 * Math.PI * 21.6 + 2))}" ${sw} stroke-width="1.9"/>`);
   }
   return '';
@@ -278,7 +278,7 @@ function placeDots(layer, tracks, playing = false) {
     d.style.setProperty('--x', t.x);
     d.style.setProperty('--y', t.y);
     d.style.setProperty('--bd', (1 / rateOf(t.rate)).toFixed(3) + 's');
-    d.classList.toggle('tt-dot--beating', playing && t.on && t.beat > 0.12);
+    d.classList.toggle('tt-dot--beating', playing && t.on && t.beat > 0.12 && t.shape !== 'buzz'); // a buzz is too fast to show
   });
 }
 function positionDots() {

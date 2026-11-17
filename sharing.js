@@ -3,7 +3,7 @@
 // Format v1 (then base64url):
 //   [version=1][track count 1..4]
 //   per track: x (16 bits) · y · level · beat · grain · rate · width (8 bits each)
-//              · flags (bit0 on, bits1-2 ear, bits3-4 timbre, bit5 pulse shape)
+//              · flags (bit0 on, bits1-2 ear, bits3-4 timbre, bits5-6 pulse shape)
 //   [checksum: sum of previous bytes modulo 256]
 // Example: https://username.github.io/tinnitus-studio/#s=AQHXCgpNAAAAUoAB…
 
@@ -43,12 +43,12 @@ export function decodeShare(hash) {
   for (let i = 0; i < n; i++) {
     const o = 2 + i * PER_TRACK, f = b[o + 8];
     const ear = (f >> 1) & 3, wave = (f >> 3) & 3;
-    if (ear >= EARS.length || wave >= WAVES.length || f >> 6) throw new Error('values');
+    if (ear >= EARS.length || wave >= WAVES.length || ((f >> 5) & 3) >= SHAPES.length || f >> 7) throw new Error('values');
     tracks.push(sanitizeTrack({
       x: ((b[o] << 8) | b[o + 1]) / 65535,
       y: b[o + 2] / 255, level: b[o + 3] / 255, beat: b[o + 4] / 255,
       grain: b[o + 5] / 255, rate: b[o + 6] / 255, width: b[o + 7] / 255,
-      on: !!(f & 1), ear: EARS[ear], wave: WAVES[wave], shape: SHAPES[(f >> 5) & 1],
+      on: !!(f & 1), ear: EARS[ear], wave: WAVES[wave], shape: SHAPES[(f >> 5) & 3],
     }));
   }
   return tracks;

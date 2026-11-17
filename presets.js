@@ -3,7 +3,7 @@
 
 export const MAX_TRACKS = 4;
 export const WAVES = ['sine', 'triangle', 'sawtooth', 'bell'];
-export const SHAPES = ['smooth', 'chirp']; // pulse shape: gentle sine, or cricket-like chirps
+export const SHAPES = ['smooth', 'chirp', 'buzz']; // pulse shape: gentle sine, cricket chirps, or regular cicada buzz
 export const EARS = ['B', 'L', 'R'];
 
 const DEFAULTS = {
@@ -59,7 +59,7 @@ export const PRESETS = [
   { id: 'crickets', art: 'crickets', fr: ['Grillons', 'Des « cri-cri » aigus et réguliers.'], name: 'Crickets', desc: 'High, regular chirping.',
     tracks: [{ x: 0.8, y: 0.04, level: 0.32, beat: 1, shape: 'chirp', rate: 0.53 }] },
   { id: 'cicadas', art: 'cicadas', fr: ['Cigales', 'Un bourdonnement aigu d’été, qui grésille.'], name: 'Cicadas', desc: 'A high, buzzing summer drone.',
-    tracks: [{ x: 0.83, y: 0.72, level: 0.36, grain: 0.9, width: 0.7 }] },
+    tracks: [{ x: 0.83, y: 0.45, level: 0.34, beat: 0.9, shape: 'buzz', rate: 0.64 }] },
   { id: 'bell', art: 'bell', fr: ['Cloche', 'Un tintement métallique qui ne s’arrête pas.'], name: 'Bell', desc: 'A metallic tone that keeps ringing.',
     tracks: [{ x: 0.58, y: 0.03, level: 0.28, wave: 'bell', beat: 0.12, rate: 0.05 }] },
 ];

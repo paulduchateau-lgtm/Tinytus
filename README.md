@@ -14,7 +14,7 @@ The look follows the **tinytus design system**: a warm "Day" theme by default (c
 ## User flow
 
 1. **What does your tinnitus sound like?** Nine starting sounds (whistle, humming, hissing, crackling, pulsing, several sounds, crickets, cicadas, bell), each playable with a single tap (or "Start from scratch").
-2. **Fine-tune your sound**. A colour spectrum: horizontally lower ↔ higher, vertically pure ↔ diffuse. Three secondary controls: Loudness, Pulse, Grain. Up to 4 layered sounds. The "More settings" panel holds the ear, tone, pulse speed, sound width and the option to show frequencies. "More settings" adds ear, tone (Soft, Round, Rich, or Bell: inharmonic partials ringing continuously), pulse shape (Gentle, or Chirping for cricket-like chirps), pulse speed and width.
+2. **Fine-tune your sound**. A colour spectrum: horizontally lower ↔ higher, vertically pure ↔ diffuse. Three secondary controls: Loudness, Pulse, Grain. Up to 4 layered sounds. The "More settings" panel holds the ear, tone, pulse speed, sound width and the option to show frequencies. "More settings" adds ear, tone (Soft, Round, Rich, or Bell: inharmonic partials ringing continuously), pulse shape (Gentle; Chirping for cricket-like chirps; Buzzing for the perfectly regular click train of cicadas), pulse speed and width.
 3. **Share my tinnitus**. A link that contains the whole composition (in the `#s=…` fragment), or a 15-second WAV file generated locally.
 
 ## Files

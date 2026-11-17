@@ -35,7 +35,7 @@ const FR = {
   'More settings': 'Réglages supplémentaires',
   'Ear': 'Oreille', 'Left': 'Gauche', 'Both': 'Les deux', 'Right': 'Droite',
   'Tone': 'Timbre', 'Soft': 'Doux', 'Round': 'Rond', 'Rich': 'Riche', 'Bell': 'Cloche',
-  'Pulse shape': 'Forme du battement', 'Gentle': 'Douce', 'Chirping': 'Grésillante',
+  'Pulse shape': 'Forme du battement', 'Gentle': 'Douce', 'Chirping': 'Grésillante', 'Buzzing': 'Crissante',
   'Pulse speed': 'Vitesse du battement', 'Slow': 'Lente', 'Fast': 'Rapide',
   'Sound width': 'Largeur du son', 'Narrow': 'Étroit', 'Wide': 'Large',
   'Show frequencies': 'Afficher les fréquences',
