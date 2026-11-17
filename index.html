@@ -219,8 +219,55 @@
     <div class="tt-share-block">
       <h3>Report for my doctor</h3>
       <p>A summary of your sound’s characteristics, to save as PDF or print.</p>
-      <button id="makeReport" class="tt-btn tt-btn--secondary">Create the report (PDF)</button>
+      <p id="maskSummary" class="mask-summary"></p>
+      <div class="tt-row">
+        <button id="openMask" class="tt-btn tt-btn--secondary">Measure masking</button>
+        <button id="makeReport" class="tt-btn tt-btn--primary">Create the report (PDF)</button>
+      </div>
     </div>
+  </dialog>
+
+  <dialog id="maskDialog" class="tt-dialog" aria-labelledby="maskTitle">
+    <form method="dialog"><button class="tt-icon-btn tt-dialog-close" aria-label="Close">×</button></form>
+    <h2 id="maskTitle" class="tt-dialog-title">Masking test</h2>
+    <p class="mask-freq"></p>
+    <section class="tt-share-block mask-step" data-step="1">
+      <h3>1 · Hearing threshold</h3>
+      <p>Use headphones in a quiet place. Set your device volume to a normal level and do not change it during the test.</p>
+      <p data-i18n-html>Press Play, then raise the level slowly from the left until you can <strong>just</strong> hear the beeps.</p>
+      <div class="mask-level">
+          <button class="tt-icon-btn" data-step="-1" aria-label="Quieter">−</button>
+          <input type="range" class="tt-range" id="maskTone" min="-100" max="-30" step="0.5" aria-label="Level">
+          <button class="tt-icon-btn" data-step="1" aria-label="Louder">+</button>
+        </div>
+        <p class="tt-note mask-db"></p>
+      <div class="tt-row">
+        <button id="toneToggle" class="tt-btn tt-btn--secondary">Play</button>
+        <button id="toneDone" class="tt-btn tt-btn--primary">I just hear it</button>
+      </div>
+    </section>
+    <section class="tt-share-block mask-step" data-step="2" hidden>
+      <h3>2 · Masking level</h3>
+      <p data-i18n-html>Listen to your own tinnitus (no sound from tinytus). Raise the noise slowly until you <strong>no longer hear your tinnitus</strong>. Stop at the lowest level that does it.</p>
+      <div class="tt-seg" id="maskNoise"><button data-v="narrow" class="on">Narrow band</button><button data-v="broad">Broadband</button></div>
+      <div class="mask-level">
+          <button class="tt-icon-btn" data-step="-1" aria-label="Quieter">−</button>
+          <input type="range" class="tt-range" id="maskNoiseLevel" min="-100" max="-15" step="0.5" aria-label="Level">
+          <button class="tt-icon-btn" data-step="1" aria-label="Louder">+</button>
+        </div>
+        <p class="tt-note mask-db"></p>
+      <div class="tt-row">
+        <button id="noiseToggle" class="tt-btn tt-btn--secondary">Play</button>
+        <button id="noiseDone" class="tt-btn tt-btn--primary">My tinnitus is masked</button>
+      </div>
+      <button id="noiseMax" class="tt-link">Still audible at the maximum</button>
+    </section>
+    <section class="tt-share-block mask-step" data-step="3" hidden>
+      <h3>Result</h3>
+      <div id="maskResult"></div>
+      <div class="tt-row"><button id="maskRedo" class="tt-btn tt-btn--secondary">Start again</button><button id="maskClose" class="tt-btn tt-btn--primary">Done</button></div>
+    </section>
+    <p class="tt-note">A self-test with your own device: useful to follow your tinnitus over time, not a replacement for a hearing test by a professional.</p>
   </dialog>
 
   <div id="report" class="report"></div>

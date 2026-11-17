@@ -20,6 +20,25 @@ function build(ctx, tracks, opts) {
   return master;
 }
 
+/**
+ * Output level (dBFS RMS) of sound `index` as it plays inside the composition (same mix scaling and
+ * limiter as listening), measured on the ear it plays in. Used by the masking test.
+ */
+export async function renderLevel(tracks, index) {
+  const ctx = offline(2);
+  const master = build(ctx, tracks.map((t, i) => (i === index ? t : { ...t, on: false })));
+  master.setCount(tracks.filter(t => t.on).length, true);
+  master.fade.gain.setValueAtTime(1, 0);
+  const buf = await render(ctx);
+  let best = 0;
+  for (let c = 0; c < 2; c++) {
+    const d = buf.getChannelData(c); let s = 0;
+    for (let i = SR / 2; i < d.length; i++) s += d[i] * d[i];
+    best = Math.max(best, s / (d.length - SR / 2));
+  }
+  return 10 * Math.log10(best || 1e-12);
+}
+
 export async function renderWav(tracks, seconds = 15) {
   const ctx = offline(seconds);
   const g = build(ctx, tracks).fade.gain;

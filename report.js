@@ -121,7 +121,23 @@ function chart(tracks) {
   return s + '</svg>';
 }
 
-export function buildReport(tracks, { code, url }) {
+const dB = d => `${d >= 0 ? '' : '−'}${num(Math.abs(d), 1)} dB`;
+function maskingSection(m) {
+  if (!m) return `<p class="r-muted">${tx('Not measured. The masking test is available in tinytus: Share → Measure masking.')}</p>`;
+  const date = new Date(m.date).toLocaleDateString(LANG === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  const rows = [
+    [tx('Minimum masking level (MML)'), m.mml == null ? tx('Not reached: the tinnitus remained audible at the maximum test level.')
+      : `<span class="r-fund">${tx('{v} above threshold', { v: dB(m.mml - m.threshold) })}</span> <span class="r-muted">· ${tx('{v} re device full scale', { v: dB(m.mml) })}</span>`],
+    [tx('Masking noise'), m.noise === 'narrow' ? tx('narrow band, ½ octave around {f} Hz', { f: num(m.freq) }) : tx('broadband (white noise)')],
+    [tx('Hearing threshold'), `${tx('{v} re device full scale', { v: dB(m.threshold) })} · ${num(m.freq)} Hz`],
+    [tx('Loudness of the recreated sound'), tx('{v} above threshold', { v: dB(m.tinnitus - m.threshold) })],
+  ];
+  return `<p class="r-muted">${tx('Measured on {d}, at {f} Hz (Sound {n}), with the person’s own device and headphones.', { d: date, f: num(m.freq), n: m.sound })}</p>`
+    + `<table>${rows.map(([k, v]) => `<tr><th>${esc(k)}</th><td>${v}</td></tr>`).join('')}</table>`
+    + `<p class="r-muted r-small">${tx('Self-administered and uncalibrated: absolute levels depend on the device, the headphones and the volume. The differences above the threshold (comparable to dB SL) are meaningful only if the same headphones and volume were used for both steps.')}</p>`;
+}
+
+export function buildReport(tracks, { code, url, masking = null }) {
   const date = new Date().toLocaleDateString(LANG === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
   const n = tracks.length;
   return `
@@ -134,12 +150,17 @@ export function buildReport(tracks, { code, url }) {
     <div class="r-summary">
       <p class="r-summary-title">${tx('Fundamental frequencies')}</p>
       ${tracks.map((t, i) => `<p><i style="background:${COLORS[i]}"></i>${tx('Sound {n}', { n: i + 1 })} <strong>${num(Math.round(fundamental(t)))} Hz</strong> <span class="r-muted">${note(fundamental(t))}</span></p>`).join('')}
+      ${masking && masking.mml != null ? `<p class="r-summary-mml">${tx('Minimum masking level (MML)')} <strong>${tx('{v} above threshold', { v: dB(masking.mml - masking.threshold) })}</strong> <span class="r-muted">· ${num(masking.freq)} Hz</span></p>` : ''}
     </div>
     <h2>${tx('Frequencies on the hearing range')}</h2>
     ${chart(tracks)}
     <p class="r-muted r-small">${tx('Dots: fundamental frequencies. Small marks: harmonics or partials. Shaded band: noise component.')}</p>
     <h2>${tx('Details')}</h2>
     ${tracks.map(describe).join('')}
+    <section class="r-keep">
+      <h2>${tx('Masking')}</h2>
+      ${maskingSection(masking)}
+    </section>
     <section class="r-keep">
       <h2>${tx('Listen again')}</h2>
       <p>${tx('Code')}: <code>${esc(code)}</code></p>

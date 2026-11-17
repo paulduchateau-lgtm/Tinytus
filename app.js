@@ -5,6 +5,7 @@ import { encodeShare, decodeShare } from './sharing.js';
 import { renderWav } from './export.js';
 import { longListen } from './long-listen.js';
 import { printReport } from './report.js';
+import { playTone, playNoise, stopSignal, recreatedLevel, TONE_RANGE, NOISE_RANGE } from './masking.js';
 import { LANG, tx, localizePage } from './i18n.js';
 
 const $ = s => document.querySelector(s);
@@ -15,7 +16,7 @@ const STORE_KEY = 'tinnitus-studio';
 const INSET = 22; // inner margin of the spectrum (px): the dot stays fully visible
 
 const engine = new LiveEngine();
-const state = { tracks: [], sel: 0 };
+const state = { tracks: [], sel: 0, masking: null };
 let screen = 'home';
 let preview = null;   // preset currently previewed on the home screen
 let shared = null;    // composition received through a link
@@ -29,6 +30,7 @@ function load() {
     if (!t) return;
     state.tracks = t;
     state.sel = Math.min(Math.max(0, d.sel | 0), t.length - 1);
+    if (d.masking && typeof d.masking === 'object' && Number.isFinite(d.masking.threshold)) state.masking = d.masking;
   } catch (e) { /* storage unavailable or corrupted: start fresh */ }
 }
 let saveTimer;
@@ -37,7 +39,7 @@ function save() {
   saveTimer = setTimeout(() => {
     try {
       localStorage.setItem(STORE_KEY, JSON.stringify({
-        v: 2, sel: state.sel,
+        v: 2, sel: state.sel, masking: state.masking,
         tracks: state.tracks.map(({ id, ...t }) => t),
       }));
     } catch (e) { /* private browsing: ignored */ }
@@ -406,6 +408,7 @@ const shareLink = () => location.href.split('#')[0] + '#' + encodeShare(state.tr
 const shareCode = () => encodeShare(state.tracks).replace(/^s=/, '');
 
 $('#share').onclick = () => {
+  showMaskSummary();
   $('#shareUrl').value = shareLink();
   $('#shareCode').value = shareCode();
   $('#nativeShare').hidden = !navigator.share;
@@ -497,10 +500,95 @@ for (const form of $$('[data-code-form]')) {
 
 // ---------- Report (save as PDF) ----------
 $('#makeReport').onclick = () => {
-  const info = { code: shareCode(), url: shareLink() };
+  const info = { code: shareCode(), url: shareLink(), masking: state.masking };
   dialog.close();
   printReport(state.tracks, info);
 };
+
+// ---------- Masking test ----------
+const maskDialog = $('#maskDialog');
+const dbText = d => `${d >= 0 ? '' : '−'}${Math.abs(d).toFixed(1).replace('.', LANG === 'fr' ? ',' : '.')} dB`;
+let mask = null; // test in progress
+function showMaskSummary() {
+  const m = state.masking;
+  $('#maskSummary').textContent = !m ? tx('Masking level: not measured yet.')
+    : m.mml == null ? tx('Masking: not reached at the maximum level ({d}).', { d: new Date(m.date).toLocaleDateString(LANG === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) })
+    : tx('Masking level: {v} above threshold ({d}).', { v: dbText(m.mml - m.threshold), d: new Date(m.date).toLocaleDateString(LANG === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) });
+}
+function maskStep(n) { for (const s of $$('.mask-step')) s.hidden = +s.dataset.step !== n; }
+function bindLevel(id, onChange) {
+  const input = $('#' + id), box = input.closest('.tt-share-block');
+  const show = () => {
+    const v = +input.value; input.style.setProperty('--v', (100 * (v - input.min) / (input.max - input.min)).toFixed(1) + '%');
+    box.querySelector('.mask-db').textContent = tx('Level: {v} (relative to the device maximum)', { v: dbText(v) });
+    onChange(v);
+  };
+  input.addEventListener('input', show);
+  for (const b of box.querySelectorAll('[data-step]')) b.onclick = () => { input.value = +input.value + 0.5 * +b.dataset.step; show(); };
+  return { reset(v) { input.value = v; show(); }, get value() { return +input.value; } };
+}
+let toneCtl = null, noiseCtl = null;
+const toneLevel = bindLevel('maskTone', v => toneCtl && toneCtl.setLevel(v));
+const noiseLevel = bindLevel('maskNoiseLevel', v => noiseCtl && noiseCtl.setLevel(v));
+const setPlayLabel = (id, on) => { $(id).textContent = tx(on ? 'Stop' : 'Play'); };
+function startMask() {
+  const t = cur() || state.tracks[0];
+  const i = state.tracks.indexOf(t);
+  mask = { index: i, freq: Math.round(freqOf(t.x)), noise: 'narrow' };
+  $('.mask-freq').textContent = tx('Tested at {f} Hz (Sound {n}).', { f: mask.freq.toLocaleString(LANG === 'fr' ? 'fr-FR' : 'en-GB'), n: i + 1 });
+  stopSignal(); toneCtl = noiseCtl = null;
+  setPlayLabel('#toneToggle', false); setPlayLabel('#noiseToggle', false);
+  toneLevel.reset(TONE_RANGE[0]); noiseLevel.reset(NOISE_RANGE[0]);
+  for (const b of $$('#maskNoise button')) b.classList.toggle('on', b.dataset.v === 'narrow');
+  maskStep(1);
+}
+$('#openMask').onclick = () => {
+  if (!state.tracks.length) return;
+  engine.stop(true); longListen.stop();
+  dialog.close(); startMask(); maskDialog.showModal();
+};
+$('#toneToggle').onclick = () => {
+  if (toneCtl) { stopSignal(); toneCtl = null; setPlayLabel('#toneToggle', false); return; }
+  toneCtl = playTone(mask.freq, toneLevel.value); setPlayLabel('#toneToggle', true);
+};
+$('#toneDone').onclick = () => {
+  if (!toneCtl) return toast(tx('Press Play first.'));
+  mask.threshold = toneLevel.value;
+  stopSignal(); toneCtl = null;
+  noiseLevel.reset(Math.max(NOISE_RANGE[0], mask.threshold - 10)); // start just under the threshold
+  maskStep(2);
+};
+$('#maskNoise').addEventListener('click', async e => {
+  const v = e.target.closest('button')?.dataset.v; if (!v) return;
+  mask.noise = v;
+  for (const b of $$('#maskNoise button')) b.classList.toggle('on', b.dataset.v === v);
+  if (noiseCtl) noiseCtl = await playNoise(mask.noise, mask.freq, noiseLevel.value);
+});
+$('#noiseToggle').onclick = async () => {
+  if (noiseCtl) { stopSignal(); noiseCtl = null; setPlayLabel('#noiseToggle', false); return; }
+  noiseCtl = await playNoise(mask.noise, mask.freq, noiseLevel.value); setPlayLabel('#noiseToggle', true);
+};
+async function finishMask(mml) {
+  stopSignal(); toneCtl = noiseCtl = null;
+  const tinnitus = await recreatedLevel(state.tracks, mask.index);
+  state.masking = { date: Date.now(), freq: mask.freq, sound: mask.index + 1, threshold: mask.threshold, mml, noise: mask.noise, tinnitus };
+  save(); showMaskSummary();
+  const m = state.masking, rows = [
+    [tx('Hearing threshold at {f} Hz', { f: m.freq.toLocaleString(LANG === 'fr' ? 'fr-FR' : 'en-GB') }), dbText(m.threshold)],
+    [tx('Minimum masking level ({n})', { n: tx(m.noise === 'narrow' ? 'narrow band' : 'broadband') }), m.mml == null ? tx('not reached at {v}', { v: dbText(NOISE_RANGE[1]) }) : dbText(m.mml)],
+    [tx('Masking level above threshold'), m.mml == null ? '—' : `<strong>${dbText(m.mml - m.threshold)}</strong>`],
+    [tx('Recreated sound above threshold'), dbText(m.tinnitus - m.threshold)],
+  ];
+  $('#maskResult').innerHTML = '<table class="mask-table">' + rows.map(([k, v]) => `<tr><th>${k}</th><td>${v}</td></tr>`).join('') + '</table>'
+    + `<p class="tt-note">${tx('Saved: it will appear in your report.')}</p>`;
+  maskStep(3);
+}
+$('#noiseDone').onclick = () => { if (!noiseCtl) return toast(tx('Press Play first.')); finishMask(noiseLevel.value); };
+$('#noiseMax').onclick = () => finishMask(null);
+$('#maskRedo').onclick = startMask;
+$('#maskClose').onclick = () => maskDialog.close();
+maskDialog.addEventListener('close', () => { stopSignal(); toneCtl = noiseCtl = null; });
+document.addEventListener('visibilitychange', () => { if (document.hidden) { stopSignal(); toneCtl = noiseCtl = null; setPlayLabel('#toneToggle', false); setPlayLabel('#noiseToggle', false); } });
 
 // ---------- Received link ----------
 function readHash() {

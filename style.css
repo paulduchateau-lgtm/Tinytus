@@ -516,3 +516,18 @@ a.tt-btn { color: inherit; }
 #report table.r-harm { width: auto; margin-top: 6px; }
 #report table.r-harm th, #report table.r-harm td { width: auto; padding: 2px 18px 2px 0; border: 0; font-size: 11.5px; font-variant-numeric: tabular-nums; }
 #report table.r-harm th { color: #777; font-weight: 600; }
+
+/* Masking test */
+.mask-freq { margin: -6px 2px 12px; color: var(--muted); font-size: var(--fs-small); }
+.mask-step + .mask-step { margin-top: 0; }
+.mask-step p strong { color: var(--text); }
+.mask-level { display: flex; align-items: center; gap: 10px; margin: 6px 0 0; }
+.mask-level .tt-range { flex: 1; }
+.mask-level .tt-icon-btn { flex: none; font-size: 26px; }
+.mask-db { margin: 2px 0 12px; font-variant-numeric: tabular-nums; }
+#maskDialog .tt-link { margin-top: 10px; }
+.mask-summary { font-size: var(--fs-small); color: var(--text-soft); margin: -4px 0 12px; }
+.mask-table { width: 100%; border-collapse: collapse; margin: 4px 0 8px; font-variant-numeric: tabular-nums; }
+.mask-table th { text-align: left; font-weight: 500; color: var(--muted); padding: 6px 8px 6px 0; font-size: var(--fs-small); }
+.mask-table td { text-align: right; padding: 6px 0; border-bottom: 1px solid var(--line); white-space: nowrap; }
+#report .r-summary-mml { margin-top: 8px !important; padding-top: 8px; border-top: 1px solid #ddd; }
