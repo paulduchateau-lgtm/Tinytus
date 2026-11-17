@@ -459,3 +459,12 @@ a.tt-btn { color: inherit; }
   .tt-tab:not(.tt-tab--listen) { flex-direction: column; gap: 2px; padding: 0 4px; font-size: 13px; }
   .tt-tab:not(.tt-tab--listen) svg { width: 19px; height: 19px; }
 }
+
+/* Frequency of the selected sound: always visible, typed or nudged with − / + */
+.freq-ctl { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; padding: 8px 8px 8px 18px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-card); }
+.freq-ctl .tt-ctl-name { margin: 0; }
+.freq-box { display: flex; align-items: center; gap: 8px; }
+.freq-box .tt-icon-btn { font-size: 26px; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+.freq-field { position: relative; display: flex; align-items: center; }
+#freq { width: 112px; margin: 0; padding: 10px 40px 10px 10px; text-align: right; font-size: 19px; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; }
+.freq-field span { position: absolute; right: 12px; font-size: 15px; color: var(--muted); pointer-events: none; }

@@ -11,6 +11,8 @@ const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
 
 /** Horizontal position (0..1) → frequency in Hz (logarithmic scale). */
 export const freqOf = x => F_MIN * Math.pow(F_MAX / F_MIN, clamp(x));
+/** Frequency in Hz → horizontal position (0..1). */
+export const xOf = f => clamp(Math.log(f / F_MIN) / Math.log(F_MAX / F_MIN));
 /** Speed setting (0..1) → beats per second (0.5 to 8 Hz). */
 export const rateOf = r => 0.5 * Math.pow(16, clamp(r));
 

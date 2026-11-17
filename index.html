@@ -84,7 +84,14 @@
             <span class="tt-pad-lbl r">Higher</span>
             <div id="padDots"></div>
           </div>
-          <p id="freqInfo" class="tt-freq" hidden></p>
+          <div class="freq-ctl">
+            <span class="tt-ctl-name">Frequency</span>
+            <div class="freq-box">
+              <button id="freqDown" class="tt-icon-btn" aria-label="Lower frequency">−</button>
+              <label class="freq-field"><input id="freq" class="tt-input" inputmode="decimal" enterkeyhint="done" autocomplete="off" aria-label="Frequency in hertz"><span>Hz</span></label>
+              <button id="freqUp" class="tt-icon-btn" aria-label="Higher frequency">+</button>
+            </div>
+          </div>
           <div id="trackActions" class="track-actions" hidden>
             <button id="toggleTrack" class="tt-chip">Mute this sound</button>
             <button id="deleteTrack" class="tt-chip tt-chip--danger">Remove</button>
@@ -125,7 +132,6 @@
               <label class="tt-ctl"><span class="tt-ctl-name">Sound width</span>
                 <input type="range" class="tt-range" id="width" min="0" max="1" step="0.005">
                 <span class="tt-ends"><span>Narrow</span><span>Wide</span></span></label>
-              <label class="tt-switch-row"><span>Show frequencies</span><input type="checkbox" id="showFreq" class="tt-switch"></label>
             </div>
           </details>
           <p class="tt-note">Keep the volume comfortable and stop if the sound becomes unpleasant.</p>

@@ -1,5 +1,5 @@
 // Tinnitus Studio user interface.
-import { LiveEngine, freqOf, rateOf } from './audio-engine.js';
+import { LiveEngine, freqOf, xOf, F_MIN, F_MAX, rateOf } from './audio-engine.js';
 import { PRESETS, makeTrack, sanitizeTracks, MAX_TRACKS } from './presets.js';
 import { encodeShare, decodeShare } from './sharing.js';
 import { renderWav } from './export.js';
@@ -14,7 +14,7 @@ const STORE_KEY = 'tinnitus-studio';
 const INSET = 22; // inner margin of the spectrum (px): the dot stays fully visible
 
 const engine = new LiveEngine();
-const state = { tracks: [], sel: 0, showFreq: false };
+const state = { tracks: [], sel: 0 };
 let screen = 'home';
 let preview = null;   // preset currently previewed on the home screen
 let shared = null;    // composition received through a link
@@ -27,7 +27,6 @@ function load() {
     if (!t) return;
     state.tracks = t;
     state.sel = Math.min(Math.max(0, d.sel | 0), t.length - 1);
-    state.showFreq = !!d.showFreq;
   } catch (e) { /* storage unavailable or corrupted: start fresh */ }
 }
 let saveTimer;
@@ -36,7 +35,7 @@ function save() {
   saveTimer = setTimeout(() => {
     try {
       localStorage.setItem(STORE_KEY, JSON.stringify({
-        v: 1, sel: state.sel, showFreq: state.showFreq,
+        v: 1, sel: state.sel,
         tracks: state.tracks.map(({ id, ...t }) => t),
       }));
     } catch (e) { /* private browsing: ignored */ }
@@ -283,11 +282,44 @@ function placeDots(layer, tracks, playing = false) {
 }
 function positionDots() {
   placeDots($('#padDots'), state.tracks, engine.playing && screen === 'editor');
-  const info = $('#freqInfo');
-  info.hidden = !state.showFreq;
-  if (state.showFreq) info.textContent = state.tracks.map((t, i) => tx('Sound {n}: {f}', { n: i + 1, f: fmtHz(freqOf(t.x)) })).join('  ·  ');
+  showFreq();
 }
-const fmtHz = f => (f < 1000 ? `${Math.round(f / 5) * 5} Hz` : `${(f / 1000).toFixed(1).replace('.', LANG === 'fr' ? ',' : '.')} kHz`);
+
+// Frequency of the selected sound: always shown, editable by typing or with − / + (hold to repeat).
+const freqInput = $('#freq');
+function showFreq() {
+  if (document.activeElement !== freqInput && cur()) freqInput.value = Math.round(freqOf(cur().x));
+}
+function setFreq(f) {
+  if (!Number.isFinite(f)) return showFreq();
+  cur().x = xOf(Math.min(F_MAX, Math.max(F_MIN, f)));
+  changed(false);
+}
+/** Accepts "4120", "4 120", "4120 Hz", "4,1k", "4.1 kHz". */
+function parseHz(s) {
+  const m = String(s).trim().toLowerCase().replace(/\s+/g, '').replace(',', '.').match(/^(\d+(?:\.\d+)?)(k?)(hz)?$/);
+  return m ? parseFloat(m[1]) * (m[2] ? 1000 : 1) : NaN;
+}
+freqInput.addEventListener('change', () => { setFreq(parseHz(freqInput.value)); showFreq(); });
+freqInput.addEventListener('keydown', e => { if (e.key === 'Enter') freqInput.blur(); });
+freqInput.addEventListener('blur', () => { freqInput.value = Math.round(freqOf(cur().x)); });
+freqInput.addEventListener('focus', () => freqInput.select());
+for (const [id, dir] of [['#freqDown', -1], ['#freqUp', 1]]) {
+  const btn = $(id);
+  let timer;
+  const step = () => {
+    const f = Math.round(freqOf(cur().x));
+    setFreq(f + dir * Math.max(1, Math.round(f * 0.01))); // 1 % per step, at least 1 Hz
+  };
+  const stop = () => { clearTimeout(timer); clearInterval(timer); };
+  btn.addEventListener('pointerdown', e => {
+    e.preventDefault();
+    step();
+    timer = setTimeout(() => { timer = setInterval(step, 70); }, 400);
+  });
+  for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) btn.addEventListener(ev, stop);
+  btn.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); step(); } });
+}
 
 // Touch interaction on the spectrum
 const pad = $('#pad');
@@ -346,7 +378,6 @@ for (const [id, key] of [['ear', 'ear'], ['wave', 'wave'], ['shape', 'shape']]) 
     if (v) { cur()[key] = v; changed(); }
   });
 }
-$('#showFreq').onchange = e => { state.showFreq = e.target.checked; save(); positionDots(); };
 
 function renderControls() {
   const t = cur();
@@ -354,7 +385,6 @@ function renderControls() {
   for (const b of $$('#ear button')) b.classList.toggle('on', b.dataset.v === t.ear);
   for (const b of $$('#wave button')) b.classList.toggle('on', b.dataset.v === t.wave);
   for (const b of $$('#shape button')) b.classList.toggle('on', b.dataset.v === t.shape);
-  $('#showFreq').checked = state.showFreq;
   document.documentElement.style.setProperty('--accent', COLORS[state.sel]);
 }
 
