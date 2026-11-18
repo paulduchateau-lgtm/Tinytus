@@ -87,7 +87,9 @@ function describe(t, i) {
   else beat = tx('Pulsing: {r} beats per second, depth {d}', { r: num(rateOf(t.rate), 1), d: pct(t.beat) });
   rows.push([tx('Pulse'), beat]);
   rows.push([tx('Grain'), t.grain < 0.05 ? tx('Smooth') : tx('Grainy, irregular texture — {g}', { g: pct(t.grain) })]);
-  rows.push([tx('Ear'), { B: tx('Both ears'), L: tx('Left ear'), R: tx('Right ear') }[t.ear]]);
+  const pan = t.pan || 0;
+  rows.push([tx('Ear'), Math.abs(pan) < 0.005 ? tx('Both ears, centred') : Math.abs(pan) > 0.995 ? tx(pan < 0 ? 'Left ear only' : 'Right ear only')
+    : tx(pan < 0 ? 'Both ears, {p} % towards the left' : 'Both ears, {p} % towards the right', { p: Math.round(Math.abs(pan) * 100) })]);
   rows.push([tx('Loudness'), tx('{l} of the app maximum (depends on the device volume)', { l: pct(t.level) })]);
   const body = rows.map(([k, v]) => `<tr><th>${esc(k)}</th><td>${v}</td></tr>`).join('');
   const muted = t.on ? '' : ` <span class="r-muted">(${tx('muted in the composition')})</span>`;

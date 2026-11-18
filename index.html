@@ -121,10 +121,9 @@
           <details class="tt-more">
             <summary>More settings</summary>
             <div class="tt-more-body">
-              <div class="tt-ctl"><span class="tt-ctl-name">Ear</span>
-                <div class="tt-seg" id="ear">
-                  <button data-v="L">Left</button><button data-v="B">Both</button><button data-v="R">Right</button>
-                </div></div>
+              <div class="tt-ctl pan-ctl"><span class="tt-ctl-name">Ear <button id="panCenter" class="tt-chip pan-center">Centre</button></span>
+                <input type="range" class="tt-range pan-range" id="pan" min="-1" max="1" step="0.01" aria-label="Ear: left to right">
+                <span class="tt-ends"><span>Left</span><span id="panValue" class="pan-value"></span><span>Right</span></span></div>
               <div class="tt-ctl"><span class="tt-ctl-name">Tone</span>
                 <div class="tt-seg" id="wave">
                   <button data-v="sine">Soft</button><button data-v="triangle">Round</button><button data-v="sawtooth">Rich</button><button data-v="bell">Bell</button>
@@ -228,7 +227,7 @@
     <section class="tt-share-block mask-step" data-step="1">
       <h3>1 · Hearing threshold</h3>
       <p>Use headphones in a quiet place. Set your device volume to a normal level and do not change it during the test.</p>
-      <p data-i18n-html>Press Play, then raise the level slowly from the left until you can <strong>just</strong> hear the beeps.</p>
+      <p data-i18n-html>The beeps start on their own, very quietly. Raise the level slowly until you can <strong>just</strong> hear them.</p>
       <div class="mask-level">
           <button class="tt-icon-btn" data-step="-1" aria-label="Quieter">−</button>
           <input type="range" class="tt-range" id="maskTone" min="-100" max="-30" step="0.5" aria-label="Level">
@@ -242,7 +241,7 @@
     </section>
     <section class="tt-share-block mask-step" data-step="2" hidden>
       <h3>2 · Masking level</h3>
-      <p data-i18n-html>Listen to your own tinnitus (no sound from tinytus). Raise the noise slowly until you <strong>no longer hear your tinnitus</strong>. Stop at the lowest level that does it.</p>
+      <p data-i18n-html>The noise starts on its own, very quietly. Listen to your own tinnitus and raise the noise slowly until you <strong>no longer hear your tinnitus</strong>. Stop at the lowest level that does it.</p>
       <div class="tt-seg" id="maskNoise"><button data-v="narrow" class="on">Narrow band</button><button data-v="broad">Broadband</button></div>
       <div class="mask-level">
           <button class="tt-icon-btn" data-step="-1" aria-label="Quieter">−</button>

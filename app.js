@@ -382,7 +382,20 @@ for (const k of ['level', 'beat', 'grain', 'rate', 'width']) {
   const el = $('#' + k);
   el.addEventListener('input', () => { cur()[k] = +el.value; fill(el); changed(false); });
 }
-for (const [id, key] of [['ear', 'ear'], ['wave', 'wave'], ['shape', 'shape']]) {
+// Ear: continuous left ↔ right, snapping to the centre near the middle
+const panEl = $('#pan');
+function showPan() {
+  const v = cur().pan;
+  panEl.value = v;
+  panEl.style.setProperty('--v', ((v + 1) * 50).toFixed(1) + '%');
+  $('#panValue').textContent = Math.abs(v) < 0.005 ? tx('Both ears, centred')
+    : Math.abs(v) > 0.995 ? tx(v < 0 ? 'Left ear only' : 'Right ear only')
+    : tx(v < 0 ? '{p} % to the left' : '{p} % to the right', { p: Math.round(Math.abs(v) * 100) });
+  $('#panCenter').disabled = Math.abs(v) < 0.005;
+}
+panEl.addEventListener('input', () => { let v = +panEl.value; if (Math.abs(v) < 0.05) v = 0; cur().pan = v; showPan(); changed(false); });
+$('#panCenter').onclick = e => { e.preventDefault(); cur().pan = 0; showPan(); changed(false); };
+for (const [id, key] of [['wave', 'wave'], ['shape', 'shape']]) {
   $('#' + id).addEventListener('click', e => {
     const v = e.target.closest('button')?.dataset.v;
     if (v) { cur()[key] = v; changed(); }
@@ -392,7 +405,7 @@ for (const [id, key] of [['ear', 'ear'], ['wave', 'wave'], ['shape', 'shape']]) 
 function renderControls() {
   const t = cur();
   for (const k of ['level', 'beat', 'grain', 'rate', 'width']) { const el = $('#' + k); el.value = t[k]; fill(el); }
-  for (const b of $$('#ear button')) b.classList.toggle('on', b.dataset.v === t.ear);
+  showPan();
   for (const b of $$('#wave button')) b.classList.toggle('on', b.dataset.v === t.wave);
   for (const b of $$('#shape button')) b.classList.toggle('on', b.dataset.v === t.shape);
   document.documentElement.style.setProperty('--accent', COLORS[state.sel]);
@@ -517,7 +530,7 @@ function showMaskSummary() {
     : m.mml == null ? tx('Not reached at the maximum · {d}', { d: new Date(m.date).toLocaleDateString(LANG === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) })
     : tx('{v} above threshold · {d}', { v: dbText(m.mml - m.threshold), d: new Date(m.date).toLocaleDateString(LANG === 'fr' ? 'fr-FR' : 'en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) });
 }
-function maskStep(n) { for (const s of $$('.mask-step')) s.hidden = +s.dataset.step !== n; }
+function maskStep(n) { if (mask) mask.step = n; for (const s of $$('.mask-step')) s.hidden = +s.dataset.step !== n; }
 function bindLevel(id, onChange) {
   const input = $('#' + id), box = input.closest('.tt-share-block');
   const show = () => {
@@ -543,15 +556,21 @@ function startMask() {
   toneLevel.reset(TONE_RANGE[0]); noiseLevel.reset(NOISE_RANGE[0]);
   for (const b of $$('#maskNoise button')) b.classList.toggle('on', b.dataset.v === 'narrow');
   maskStep(1);
+  startTone(); // starts on its own, at the quietest level
+}
+function startTone() { toneCtl = playTone(mask.freq, toneLevel.value); setPlayLabel('#toneToggle', true); }
+async function startNoise() {
+  noiseCtl = await playNoise(mask.noise, mask.freq, noiseLevel.value);
+  if (maskDialog.open && mask.step === 2) setPlayLabel('#noiseToggle', true); else { stopSignal(); noiseCtl = null; }
 }
 $('#openMask').onclick = () => {
   if (!state.tracks.length) return;
   engine.stop(true); longListen.stop();
-  dialog.close(); startMask(); maskDialog.showModal();
+  dialog.close(); maskDialog.showModal(); startMask();
 };
 $('#toneToggle').onclick = () => {
   if (toneCtl) { stopSignal(); toneCtl = null; setPlayLabel('#toneToggle', false); return; }
-  toneCtl = playTone(mask.freq, toneLevel.value); setPlayLabel('#toneToggle', true);
+  startTone();
 };
 $('#toneDone').onclick = () => {
   if (!toneCtl) return toast(tx('Press Play first.'));
@@ -559,6 +578,7 @@ $('#toneDone').onclick = () => {
   stopSignal(); toneCtl = null;
   noiseLevel.reset(Math.max(NOISE_RANGE[0], mask.threshold - 10)); // start just under the threshold
   maskStep(2);
+  startNoise(); // starts on its own too
 };
 $('#maskNoise').addEventListener('click', async e => {
   const v = e.target.closest('button')?.dataset.v; if (!v) return;
@@ -568,7 +588,7 @@ $('#maskNoise').addEventListener('click', async e => {
 });
 $('#noiseToggle').onclick = async () => {
   if (noiseCtl) { stopSignal(); noiseCtl = null; setPlayLabel('#noiseToggle', false); return; }
-  noiseCtl = await playNoise(mask.noise, mask.freq, noiseLevel.value); setPlayLabel('#noiseToggle', true);
+  await startNoise();
 };
 async function finishMask(mml) {
   stopSignal(); toneCtl = noiseCtl = null;

@@ -110,7 +110,7 @@ export function voiceParams(t, sr, B) {
     frozen: buzz,
     rate: buzz ? buzzRateOf(t.rate) : rateOf(t.rate),
     gain: t.on ? MAX_GAIN * lvl * lvl * Math.min(2.5, grainComp * beatComp) : 0,
-    pan: t.ear === 'L' ? -1 : t.ear === 'R' ? 1 : 0,
+    pan: Math.min(1, Math.max(-1, t.pan || 0)),
   };
 }
 

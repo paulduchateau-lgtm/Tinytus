@@ -16,7 +16,7 @@ const DEFAULTS = {
   grain: 0,    // smooth (0) → grainy (1)
   rate: 0.32,  // pulse speed (≈ 1.2 per second)
   width: 0.5,  // sound width
-  ear: 'B',
+  pan: 0,      // left (-1) … centre (0) … right (1)
   wave: 'sine',
   shape: 'smooth',
   on: true,
@@ -30,7 +30,9 @@ export function sanitizeTrack(p) {
   const o = p && typeof p === 'object' ? p : {};
   const t = { id: uid++ };
   for (const k of ['x', 'y', 'level', 'beat', 'grain', 'rate', 'width']) t[k] = num(o[k], DEFAULTS[k]);
-  t.ear = EARS.includes(o.ear) ? o.ear : 'B';
+  // Older saves and links used ear 'L' / 'B' / 'R'.
+  const pan = typeof o.pan === 'number' && Number.isFinite(o.pan) ? o.pan : { L: -1, R: 1 }[o.ear] || 0;
+  t.pan = Math.min(1, Math.max(-1, pan));
   t.wave = WAVES.includes(o.wave) ? o.wave : 'sine';
   t.shape = SHAPES.includes(o.shape) ? o.shape : 'smooth';
   t.on = o.on !== false;
